@@ -43,11 +43,31 @@
         <ul id="top-states" class="space-y-1.5 font-mono text-[12px]"></ul>
       </aside>
 
-      <!-- Legend / disclosure -->
-      <div class="absolute top-20 right-5 z-10 w-60 rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm p-4 text-[11px] leading-relaxed text-fog-dim">
-        <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-2">How to read this</div>
-        <p>Each point is one FAA-logged UAS sighting, placed at its <span class="text-fog">city/metro centroid</span> — the FAA public records carry no exact coordinates.</p>
-        <p class="mt-2">Clusters show counts; click any point for the original FAA narrative.</p>
+      <!-- Layers + disclosure -->
+      <div class="absolute top-20 right-5 z-10 w-64 rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm p-4 text-[11px] leading-relaxed">
+        <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-3">Layers</div>
+
+        <label class="flex items-center gap-2.5 mb-2.5 cursor-pointer select-none">
+          <input type="checkbox" data-layer="sightings" checked class="accent-cyan w-3.5 h-3.5" />
+          <span class="w-2.5 h-2.5 rounded-full bg-cyan inline-block shrink-0"></span>
+          <span class="text-fog flex-1">UAS sightings</span>
+        </label>
+        <label class="flex items-center gap-2.5 mb-2.5 cursor-pointer select-none">
+          <input type="checkbox" data-layer="military" class="accent-cyan w-3.5 h-3.5" />
+          <span class="w-2.5 h-2.5 rounded-sm inline-block shrink-0" style="background:#C8902E"></span>
+          <span class="text-fog flex-1">Military installations</span>
+          <span class="font-mono text-fog-dim text-[10px]">654</span>
+        </label>
+        <label class="flex items-center gap-2.5 mb-1 cursor-pointer select-none">
+          <input type="checkbox" data-layer="airports" class="accent-cyan w-3.5 h-3.5" />
+          <span class="w-2.5 h-2.5 rounded-full inline-block shrink-0 border" style="border-color:#9DB6CE"></span>
+          <span class="text-fog flex-1">Major airports</span>
+          <span class="font-mono text-fog-dim text-[10px]">917</span>
+        </label>
+
+        <div class="border-t border-navy-700 mt-3 pt-3 text-fog-dim">
+          Sightings sit at their <span class="text-fog">city/metro centroid</span> — FAA public records carry no exact coordinates. Click any point, base, or airport for detail.
+        </div>
       </div>
 
       <!-- Time scrubber -->

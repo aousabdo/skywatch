@@ -6,3 +6,6 @@ dist/
 
 # Large public-domain source kept out of git; regenerate via scripts/fetch-faa.mjs
 data/geo/2023_Gaz_place_national.txt
+
+# Large raw overlay sources; committed outputs live in public/data/overlays
+data/raw/overlays/

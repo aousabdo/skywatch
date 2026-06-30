@@ -1,7 +1,7 @@
 import "./style.css";
 import { SkyMap } from "./map";
 import { Timeline } from "./timeline";
-import { loadDataset, toFeatures, filterFeatures, dayToDate } from "./data";
+import { loadDataset, loadGeoJSON, toFeatures, filterFeatures, dayToDate } from "./data";
 import type { Sighting, SightingFeature } from "./types";
 
 const BASE = import.meta.env.BASE_URL;
@@ -73,6 +73,33 @@ async function main() {
 
   apply();
   ($("#loading") as HTMLElement).style.display = "none";
+
+  // Critical-infrastructure overlays — loaded lazily after first paint so the
+  // sightings map is interactive immediately.
+  wireLayerToggles(map);
+  map.ready.then(async () => {
+    const [military, airports] = await Promise.all([
+      loadGeoJSON(BASE, "data/overlays/military.json"),
+      loadGeoJSON(BASE, "data/overlays/airports.json"),
+    ]);
+    map.addMilitary(military);
+    map.addAirports(airports);
+  });
+}
+
+const LAYER_IDS: Record<string, string[]> = {
+  sightings: ["clusters", "cluster-count", "point"],
+  military: ["military-fill", "military-line"],
+  airports: ["airports-point"],
+};
+
+function wireLayerToggles(map: SkyMap) {
+  document.querySelectorAll<HTMLInputElement>("input[data-layer]").forEach((cb) => {
+    cb.addEventListener("change", () => {
+      const ids = LAYER_IDS[cb.dataset.layer!];
+      if (ids) map.setLayerVisible(ids, cb.checked);
+    });
+  });
 }
 
 function updatePanel(filtered: SightingFeature[], range: [number, number]) {

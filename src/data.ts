@@ -16,6 +16,12 @@ export async function loadDataset(base: string): Promise<Dataset> {
   return res.json();
 }
 
+export async function loadGeoJSON(base: string, path: string): Promise<GeoJSON.FeatureCollection> {
+  const res = await fetch(`${base}${path}`);
+  if (!res.ok) throw new Error(`Failed to load ${path}: ${res.status}`);
+  return res.json();
+}
+
 // Build the full GeoJSON feature collection once. We keep the heavy fields
 // (narrative, city) out of the features and look them up by id on demand.
 export function toFeatures(sightings: Sighting[]): SightingFeature[] {

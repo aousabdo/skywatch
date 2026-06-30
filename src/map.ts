@@ -10,11 +10,14 @@ const SRC = "sightings";
 
 export class SkyMap {
   readonly map: maplibregl.Map;
-  private ready = false;
+  readonly ready: Promise<void>;
+  private resolveReady!: () => void;
+  private isReady = false;
   private pending: GeoJSON.FeatureCollection | null = null;
   private lookup: (id: number) => Sighting | undefined = () => undefined;
 
   constructor(container: string) {
+    this.ready = new Promise((res) => (this.resolveReady = res));
     this.map = new maplibregl.Map({
       container,
       style: BASEMAP,
@@ -98,7 +101,8 @@ export class SkyMap {
     });
 
     this.wireInteractions();
-    this.ready = true;
+    this.isReady = true;
+    this.resolveReady();
     if (this.pending) this.setData(this.pending);
   }
 
@@ -133,12 +137,103 @@ export class SkyMap {
   }
 
   setData(fc: GeoJSON.FeatureCollection) {
-    if (!this.ready) {
+    if (!this.isReady) {
       this.pending = fc;
       return;
     }
     (this.map.getSource(SRC) as maplibregl.GeoJSONSource).setData(fc);
   }
+
+  // --- Critical-infrastructure overlays (inserted beneath the sightings) ---
+
+  addMilitary(fc: GeoJSON.FeatureCollection) {
+    if (this.map.getSource("military")) return;
+    this.map.addSource("military", { type: "geojson", data: fc });
+    this.map.addLayer({
+      id: "military-fill", type: "fill", source: "military",
+      layout: { visibility: "none" },
+      paint: { "fill-color": "#C8902E", "fill-opacity": 0.14 },
+    }, "clusters");
+    this.map.addLayer({
+      id: "military-line", type: "line", source: "military",
+      layout: { visibility: "none" },
+      paint: { "line-color": "#D9A646", "line-width": 1, "line-opacity": 0.7 },
+    }, "clusters");
+
+    this.map.on("click", "military-fill", (e) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      new maplibregl.Popup({ closeButton: true, offset: 6 })
+        .setLngLat(e.lngLat)
+        .setHTML(basePopup(f.properties as MilProps))
+        .addTo(this.map);
+    });
+    this.hoverCursor("military-fill");
+  }
+
+  addAirports(fc: GeoJSON.FeatureCollection) {
+    if (this.map.getSource("airports")) return;
+    this.map.addSource("airports", { type: "geojson", data: fc });
+    this.map.addLayer({
+      id: "airports-point", type: "circle", source: "airports",
+      layout: { visibility: "none" },
+      paint: {
+        "circle-color": "#0D2545",
+        "circle-stroke-color": ["match", ["get", "size"], "large", "#9DB6CE", "#6E8CA8"],
+        "circle-stroke-width": ["match", ["get", "size"], "large", 2, 1],
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, ["match", ["get", "size"], "large", 3.5, 2], 10, ["match", ["get", "size"], "large", 7, 4.5]],
+        "circle-opacity": 0.9,
+      },
+    }, "clusters");
+
+    this.map.on("click", "airports-point", (e) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      const geom = f.geometry as GeoJSON.Point;
+      new maplibregl.Popup({ closeButton: true, offset: 8 })
+        .setLngLat(geom.coordinates as [number, number])
+        .setHTML(airportPopup(f.properties as AirportProps))
+        .addTo(this.map);
+    });
+    this.hoverCursor("airports-point");
+  }
+
+  setLayerVisible(ids: string[], visible: boolean) {
+    for (const id of ids) {
+      if (this.map.getLayer(id)) {
+        this.map.setLayoutProperty(id, "visibility", visible ? "visible" : "none");
+      }
+    }
+  }
+
+  private hoverCursor(layer: string) {
+    this.map.on("mouseenter", layer, () => (this.map.getCanvas().style.cursor = "pointer"));
+    this.map.on("mouseleave", layer, () => (this.map.getCanvas().style.cursor = ""));
+  }
+}
+
+interface MilProps { name: string; branch: string; component: string; state: string; joint: string | null; }
+interface AirportProps { name: string; muni: string | null; iata: string | null; icao: string | null; size: string; }
+
+function basePopup(p: MilProps): string {
+  return `
+    <div style="padding:12px 14px 14px">
+      <div style="font-family:'JetBrains Mono',monospace;color:#D9A646;font-size:10px;letter-spacing:.1em;text-transform:uppercase">${esc(p.branch)}${p.joint ? " · Joint Base" : ""}</div>
+      <div style="color:#E8EDF2;font-weight:600;font-size:14px;margin-top:3px">${esc(p.name)}</div>
+      <div style="color:#9DB0C4;font-size:11px;margin-top:2px">${esc(p.state)} · ${esc(p.component)}</div>
+      <div style="color:#5E7088;font-size:9.5px;margin-top:9px;border-top:1px solid #123059;padding-top:7px">HIFLD USA Military Bases</div>
+    </div>`;
+}
+
+function airportPopup(p: AirportProps): string {
+  const code = p.iata || p.icao || "";
+  return `
+    <div style="padding:12px 14px 14px">
+      <div style="font-family:'JetBrains Mono',monospace;color:#9DB6CE;font-size:11px;letter-spacing:.08em">${esc(code)} · ${p.size === "large" ? "Large hub" : "Regional"}</div>
+      <div style="color:#E8EDF2;font-weight:600;font-size:14px;margin-top:3px">${esc(p.name)}</div>
+      ${p.muni ? `<div style="color:#9DB0C4;font-size:11px;margin-top:2px">${esc(p.muni)}</div>` : ""}
+      <div style="color:#5E7088;font-size:9.5px;margin-top:9px;border-top:1px solid #123059;padding-top:7px">OurAirports (public domain)</div>
+    </div>`;
 }
 
 function esc(s: string): string {

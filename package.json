@@ -1,0 +1,27 @@
+{
+  "name": "skywatch",
+  "version": "0.1.0",
+  "description": "Skywatch — a public-data Counter-UAS Incident Atlas. FAA UAS sightings joined to critical-infrastructure overlays in one operator view.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Aous Abdo",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "ingest": "node scripts/ingest.mjs",
+    "fetch-faa": "node scripts/fetch-faa.mjs"
+  },
+  "dependencies": {
+    "d3": "^7.9.0",
+    "maplibre-gl": "^4.7.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/d3": "^7.4.3",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "xlsx": "^0.18.5"
+  }
+}

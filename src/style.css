@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* Mariner palette — literal hex, no var() indirection. */
+@theme {
+  --color-navy: #0B1F3A;
+  --color-navy-800: #0D2545;
+  --color-navy-700: #123059;
+  --color-navy-600: #1B4179;
+  --color-cyan: #3DB9D8;
+  --color-cyan-bright: #5FD2EE;
+  --color-fog: #E8EDF2;
+  --color-fog-dim: #9DB0C4;
+  --color-danger: #A12727;
+  --color-danger-bright: #E0463F;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+html, body, #app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #0B1F3A;
+  color: #E8EDF2;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* MapLibre canvas sits behind everything; UI floats over it.
+   ID selector overrides maplibre-gl.css's `.maplibregl-map { position: relative }`,
+   which would otherwise collapse the inset-0 container to zero height. */
+#map { position: absolute; inset: 0; }
+.maplibregl-canvas { outline: none; }
+
+.maplibregl-popup-content {
+  background: #0D2545;
+  color: #E8EDF2;
+  border: 1px solid #123059;
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+  font-family: var(--font-sans);
+  max-width: 340px;
+}
+.maplibregl-popup-tip { border-top-color: #0D2545 !important; border-bottom-color: #0D2545 !important; }
+.maplibregl-popup-close-button { color: #9DB0C4; font-size: 18px; padding: 2px 7px; }
+.maplibregl-popup-close-button:hover { color: #E8EDF2; background: transparent; }
+.maplibregl-ctrl-group { background: #0D2545 !important; border: 1px solid #123059 !important; }
+.maplibregl-ctrl-group button + button { border-top: 1px solid #123059 !important; }
+.maplibregl-ctrl button .maplibregl-ctrl-icon { filter: invert(0.85); }
+
+/* Custom range input (time scrubber handles) */
+input[type="range"].scrub {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+input[type="range"].scrub::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 46px;
+  width: 12px;
+  border-radius: 3px;
+  background: #3DB9D8;
+  border: 1px solid #0B1F3A;
+  box-shadow: 0 0 8px rgba(61, 185, 216, 0.6);
+}
+input[type="range"].scrub::-moz-range-thumb {
+  height: 46px;
+  width: 12px;
+  border-radius: 3px;
+  background: #3DB9D8;
+  border: 1px solid #0B1F3A;
+}
+
+.tnum { font-variant-numeric: tabular-nums; }

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+.vite/
+
+# Large public-domain source kept out of git; regenerate via scripts/fetch-faa.mjs
+data/geo/2023_Gaz_place_national.txt

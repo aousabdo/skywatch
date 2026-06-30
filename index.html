@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Skywatch — Counter-UAS Incident Atlas</title>
+    <meta name="description" content="A public-data Counter-UAS Incident Atlas: FAA UAS sightings mapped against critical infrastructure. Built by OCEANS LLC." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Map fills the viewport; everything else floats over it. -->
+      <div id="map" class="absolute inset-0"></div>
+
+      <!-- Header -->
+      <header class="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-5 py-3 pointer-events-none">
+        <div class="pointer-events-auto">
+          <div class="flex items-baseline gap-3">
+            <h1 class="text-fog font-semibold text-lg tracking-[0.18em]">SKYWATCH</h1>
+            <span class="text-fog-dim text-xs uppercase tracking-[0.22em]">Counter-UAS Incident Atlas</span>
+          </div>
+          <p class="text-fog-dim text-[11px] mt-0.5">FAA UAS sightings · public records</p>
+        </div>
+        <div id="live-count" class="pointer-events-auto text-right">
+          <div class="font-mono text-cyan text-2xl font-semibold tnum leading-none" data-count>—</div>
+          <div class="text-fog-dim text-[10px] uppercase tracking-[0.18em] mt-1">sightings in view</div>
+        </div>
+      </header>
+
+      <!-- Stats / filter panel -->
+      <aside id="panel" class="absolute top-20 left-5 z-10 w-64 rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm p-4 text-sm">
+        <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-2">Window</div>
+        <div id="window-label" class="font-mono text-fog text-[13px] mb-4 tnum">—</div>
+
+        <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-2">Filter by state</div>
+        <select id="state-filter" class="w-full bg-navy-700 border border-navy-600 rounded px-2 py-1.5 text-fog text-[13px] mb-4 outline-none focus:border-cyan">
+          <option value="">All states</option>
+        </select>
+
+        <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-2">Top states in window</div>
+        <ul id="top-states" class="space-y-1.5 font-mono text-[12px]"></ul>
+      </aside>
+
+      <!-- Legend / disclosure -->
+      <div class="absolute top-20 right-5 z-10 w-60 rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm p-4 text-[11px] leading-relaxed text-fog-dim">
+        <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-2">How to read this</div>
+        <p>Each point is one FAA-logged UAS sighting, placed at its <span class="text-fog">city/metro centroid</span> — the FAA public records carry no exact coordinates.</p>
+        <p class="mt-2">Clusters show counts; click any point for the original FAA narrative.</p>
+      </div>
+
+      <!-- Time scrubber -->
+      <div id="timeline" class="absolute bottom-9 left-5 right-5 z-10 rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm px-4 pt-2 pb-3"></div>
+
+      <!-- OCEANS credit -->
+      <div class="absolute bottom-2 left-5 z-10 flex items-center gap-2 text-fog-dim text-[11px]">
+        <span class="font-mono text-cyan text-sm">[~]</span>
+        <span>Built by OCEANS LLC</span>
+      </div>
+
+      <!-- Loading overlay -->
+      <div id="loading" class="absolute inset-0 z-20 flex items-center justify-center bg-navy">
+        <div class="text-center">
+          <div class="font-mono text-cyan text-sm tracking-[0.2em] animate-pulse">LOADING SIGHTINGS…</div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

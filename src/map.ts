@@ -7,6 +7,7 @@ import type { Sighting } from "./types";
 const BASEMAP = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
 const SRC = "sightings";
+const EMPTY: GeoJSON.FeatureCollection = { type: "FeatureCollection", features: [] };
 
 export class SkyMap {
   readonly map: maplibregl.Map;
@@ -15,6 +16,8 @@ export class SkyMap {
   private isReady = false;
   private pending: GeoJSON.FeatureCollection | null = null;
   private lookup: (id: number) => Sighting | undefined = () => undefined;
+  private baseLookup: (id: number | null) => string | null = () => null;
+  private alertVisible = true;
 
   constructor(container: string) {
     this.ready = new Promise((res) => (this.resolveReady = res));
@@ -100,10 +103,61 @@ export class SkyMap {
       },
     });
 
+    this.initAlerts();
     this.wireInteractions();
     this.isReady = true;
     this.resolveReady();
     if (this.pending) this.setData(this.pending);
+  }
+
+  // Proximity-alert layer: near-base sightings rendered as red pulsing glows,
+  // on top of the cyan clusters. Data is set per time-window from main.
+  private initAlerts() {
+    this.map.addSource("alerts", { type: "geojson", data: EMPTY });
+    this.map.addLayer({
+      id: "alert-halo", type: "circle", source: "alerts",
+      paint: {
+        "circle-color": "#E0463F",
+        "circle-radius": 12,
+        "circle-opacity": 0.25,
+        "circle-blur": 0.6,
+      },
+    });
+    this.map.addLayer({
+      id: "alert-core", type: "circle", source: "alerts",
+      paint: {
+        "circle-color": "#E0463F",
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 3, 10, 5.5],
+        "circle-opacity": 0.95,
+        "circle-stroke-color": "#1A0606",
+        "circle-stroke-width": 1,
+      },
+    });
+    this.map.on("click", "alert-core", (e) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      const s = this.lookup(f.properties!.id as number);
+      if (!s) return;
+      const geom = f.geometry as GeoJSON.Point;
+      new maplibregl.Popup({ closeButton: true, maxWidth: "340px", offset: 10 })
+        .setLngLat(geom.coordinates as [number, number])
+        .setHTML(popupHtml(s, this.baseName(s.nb)))
+        .addTo(this.map);
+    });
+    this.hoverCursor("alert-core");
+    this.startPulse();
+  }
+
+  private startPulse() {
+    const loop = (t: number) => {
+      if (this.map.getLayer("alert-halo") && this.alertVisible) {
+        const s = (Math.sin(t / 700) + 1) / 2; // 0..1
+        this.map.setPaintProperty("alert-halo", "circle-radius", 11 + 13 * s);
+        this.map.setPaintProperty("alert-halo", "circle-opacity", 0.32 * (1 - s) + 0.05);
+      }
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
   }
 
   private wireInteractions() {
@@ -126,7 +180,7 @@ export class SkyMap {
       const geom = f.geometry as GeoJSON.Point;
       new maplibregl.Popup({ closeButton: true, maxWidth: "340px", offset: 10 })
         .setLngLat(geom.coordinates as [number, number])
-        .setHTML(popupHtml(s))
+        .setHTML(popupHtml(s, this.baseName(s.nb)))
         .addTo(this.map);
     });
 
@@ -206,6 +260,28 @@ export class SkyMap {
     }
   }
 
+  setAlerts(fc: GeoJSON.FeatureCollection) {
+    const src = this.map.getSource("alerts") as maplibregl.GeoJSONSource | undefined;
+    if (src) src.setData(fc);
+  }
+
+  setAlertVisible(visible: boolean) {
+    this.alertVisible = visible;
+    this.setLayerVisible(["alert-halo", "alert-core"], visible);
+  }
+
+  setBaseLookup(fn: (id: number | null) => string | null) {
+    this.baseLookup = fn;
+  }
+
+  private baseName(id: number | null): string | null {
+    return this.baseLookup(id);
+  }
+
+  flyTo(lon: number, lat: number, zoom = 9) {
+    this.map.flyTo({ center: [lon, lat], zoom, speed: 1.4, curve: 1.5 });
+  }
+
   private hoverCursor(layer: string) {
     this.map.on("mouseenter", layer, () => (this.map.getCanvas().style.cursor = "pointer"));
     this.map.on("mouseleave", layer, () => (this.map.getCanvas().style.cursor = ""));
@@ -246,7 +322,7 @@ const PRECISION_LABEL: Record<string, string> = {
   state: "State centroid (city not resolved)",
 };
 
-function popupHtml(s: Sighting): string {
+function popupHtml(s: Sighting, nearestBase: string | null): string {
   const date = new Date(s.d + "T00:00:00Z").toLocaleDateString("en-US", {
     year: "numeric", month: "short", day: "numeric", timeZone: "UTC",
   });
@@ -259,12 +335,20 @@ function popupHtml(s: Sighting): string {
     .map((c) => `<span style="background:#123059;color:#9DB0C4;border-radius:4px;padding:1px 7px;font-size:10px;letter-spacing:.04em">${esc(c)}</span>`)
     .join(" ");
 
+  const proximity = nearestBase != null && s.nd != null
+    ? `<div style="display:flex;align-items:center;gap:6px;margin:8px 0 0;color:#E0463F;font-size:11px">
+         <span style="width:7px;height:7px;border-radius:50%;background:#E0463F;display:inline-block"></span>
+         ${s.nd.toFixed(1)} nm from ${esc(nearestBase)}
+       </div>`
+    : "";
+
   return `
     <div style="padding:14px 16px 16px">
       <div style="font-family:'JetBrains Mono',monospace;color:#3DB9D8;font-size:11px;letter-spacing:.08em">${esc(date)}</div>
       <div style="color:#E8EDF2;font-weight:600;font-size:15px;margin-top:2px">${esc(s.c)}, ${esc(s.s)}</div>
-      <div style="display:flex;flex-wrap:wrap;gap:5px;margin:9px 0">${chipHtml}</div>
-      <div style="color:#C5D2E0;font-size:11.5px;line-height:1.5;max-height:150px;overflow:auto">${esc(s.n)}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px;margin:9px 0 0">${chipHtml}</div>
+      ${proximity}
+      <div style="color:#C5D2E0;font-size:11.5px;line-height:1.5;max-height:150px;overflow:auto;margin-top:9px">${esc(s.n)}</div>
       <div style="color:#5E7088;font-size:9.5px;margin-top:10px;border-top:1px solid #123059;padding-top:7px">
         ${PRECISION_LABEL[s.p] ?? s.p} · FAA UAS Sightings (public records)
       </div>

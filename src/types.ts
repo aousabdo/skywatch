@@ -15,6 +15,18 @@ export interface Sighting {
   t: "SIGHTING" | "INCIDENT" | null; // FAA incident class
   k: string | null; // coarse UAS descriptor when stated
   n: string; // full FAA narrative
+  nb: number | null; // nearest military base id (from enrich-proximity)
+  nd: number | null; // distance to that base, nm
+}
+
+export interface Base {
+  id: number;
+  name: string;
+  branch: string;
+  state: string;
+  joint: string | null;
+  lon: number;
+  lat: number;
 }
 
 export interface Dataset {
@@ -43,4 +55,6 @@ export type SightingFeature = GeoJSON.Feature<GeoJSON.Point, {
   d: number; // epoch day, for fast range filtering
   p: Precision;
   s: string; // state abbreviation, for the state filter
+  nb: number | null; // nearest base id
+  nd: number | null; // distance to nearest base, nm
 }>;

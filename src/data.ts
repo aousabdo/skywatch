@@ -28,7 +28,7 @@ export function toFeatures(sightings: Sighting[]): SightingFeature[] {
   return sightings.map((s) => ({
     type: "Feature",
     geometry: { type: "Point", coordinates: [s.lon, s.lat] },
-    properties: { id: s.id, d: epochDay(s.d), p: s.p, s: s.s },
+    properties: { id: s.id, d: epochDay(s.d), p: s.p, s: s.s, nb: s.nb ?? null, nd: s.nd ?? null },
   }));
 }
 

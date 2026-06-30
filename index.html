@@ -29,18 +29,35 @@
         </div>
       </header>
 
-      <!-- Stats / filter panel -->
-      <aside id="panel" class="absolute top-20 left-5 z-10 w-64 rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm p-4 text-sm">
-        <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-2">Window</div>
+      <!-- Stats / filter / hotspots panel -->
+      <aside id="panel" class="absolute top-20 left-5 z-10 w-72 rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm p-4 text-sm max-h-[calc(100vh-9rem)] overflow-y-auto">
+        <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-1">Window</div>
         <div id="window-label" class="font-mono text-fog text-[13px] mb-4 tnum">—</div>
 
+        <!-- Proximity headline -->
+        <div class="rounded-md border border-danger/40 bg-danger/10 p-3 mb-4">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-danger-bright text-[10px] uppercase tracking-[0.18em] font-semibold">Near installations</span>
+            <select id="radius" class="bg-navy-700 border border-navy-600 rounded px-1.5 py-0.5 text-fog text-[11px] outline-none focus:border-cyan">
+              <option value="5">≤ 5 nm</option>
+              <option value="10" selected>≤ 10 nm</option>
+              <option value="25">≤ 25 nm</option>
+            </select>
+          </div>
+          <div class="flex items-baseline gap-1.5">
+            <span id="alert-count" class="font-mono text-danger-bright text-2xl font-semibold tnum leading-none">—</span>
+            <span class="text-fog-dim text-[11px]">sightings near a base</span>
+          </div>
+          <div id="alert-caption" class="text-fog-dim text-[11px] mt-1.5 leading-snug"></div>
+        </div>
+
+        <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-2">Top installations in window</div>
+        <ol id="hotspots" class="space-y-1 font-mono text-[11.5px] mb-4"></ol>
+
         <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-2">Filter by state</div>
-        <select id="state-filter" class="w-full bg-navy-700 border border-navy-600 rounded px-2 py-1.5 text-fog text-[13px] mb-4 outline-none focus:border-cyan">
+        <select id="state-filter" class="w-full bg-navy-700 border border-navy-600 rounded px-2 py-1.5 text-fog text-[13px] outline-none focus:border-cyan">
           <option value="">All states</option>
         </select>
-
-        <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-2">Top states in window</div>
-        <ul id="top-states" class="space-y-1.5 font-mono text-[12px]"></ul>
       </aside>
 
       <!-- Layers + disclosure -->
@@ -51,6 +68,11 @@
           <input type="checkbox" data-layer="sightings" checked class="accent-cyan w-3.5 h-3.5" />
           <span class="w-2.5 h-2.5 rounded-full bg-cyan inline-block shrink-0"></span>
           <span class="text-fog flex-1">UAS sightings</span>
+        </label>
+        <label class="flex items-center gap-2.5 mb-2.5 cursor-pointer select-none">
+          <input type="checkbox" data-layer="alerts" checked class="accent-cyan w-3.5 h-3.5" />
+          <span class="w-2.5 h-2.5 rounded-full inline-block shrink-0" style="background:#E0463F"></span>
+          <span class="text-fog flex-1">Proximity alerts</span>
         </label>
         <label class="flex items-center gap-2.5 mb-2.5 cursor-pointer select-none">
           <input type="checkbox" data-layer="military" class="accent-cyan w-3.5 h-3.5" />

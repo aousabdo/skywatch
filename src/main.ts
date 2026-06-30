@@ -2,11 +2,10 @@ import "./style.css";
 import { SkyMap } from "./map";
 import { Timeline } from "./timeline";
 import { loadDataset, loadGeoJSON, toFeatures, filterFeatures, dayToDate } from "./data";
-import type { Sighting, SightingFeature } from "./types";
+import type { Base, Sighting, SightingFeature } from "./types";
 
 const BASE = import.meta.env.BASE_URL;
 
-// US state names for the filter dropdown labels.
 const STATE_NAME: Record<string, string> = {
   AL: "Alabama", AK: "Alaska", AZ: "Arizona", AR: "Arkansas", CA: "California",
   CO: "Colorado", CT: "Connecticut", DE: "Delaware", DC: "District of Columbia",
@@ -22,21 +21,31 @@ const STATE_NAME: Record<string, string> = {
   PR: "Puerto Rico", GU: "Guam", VI: "Virgin Islands",
 };
 
-const $ = <T extends Element>(sel: string): T => document.querySelector(sel) as T;
+const BRANCH_ABBR: Record<string, string> = {
+  "Air Force": "USAF", Army: "ARMY", Navy: "NAVY", "Marine Corps": "USMC",
+  "Coast Guard": "USCG", Other: "DOD",
+};
 
+const $ = <T extends Element>(sel: string): T => document.querySelector(sel) as T;
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 const fmtDate = (d: Date) =>
   d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
+const fmtWindow = (a: number, b: number) => `${fmtDate(dayToDate(a))} — ${fmtDate(dayToDate(b))}`;
 
 async function main() {
-  const data = await loadDataset(BASE);
+  const [data, basesArr] = await Promise.all([
+    loadDataset(BASE),
+    fetch(`${BASE}data/overlays/bases.json`).then((r) => r.json() as Promise<Base[]>),
+  ]);
   const sightings = data.sightings;
   const byId = new Map<number, Sighting>(sightings.map((s) => [s.id, s]));
+  const baseById = new Map<number, Base>(basesArr.map((b) => [b.id, b]));
   const features = toFeatures(sightings);
 
   const map = new SkyMap("map");
   map.setSightingLookup((id) => byId.get(id));
+  map.setBaseLookup((id) => (id == null ? null : baseById.get(id)?.name ?? null));
 
-  // State filter options, ordered by sighting volume.
   const stateSel = $<HTMLSelectElement>("#state-filter");
   for (const [abbr] of Object.entries(data.meta.byState).sort((a, b) => b[1] - a[1])) {
     const opt = document.createElement("option");
@@ -47,11 +56,24 @@ async function main() {
 
   let state = "";
   let range: [number, number] = [0, 0];
+  let radius = Number(($("#radius") as HTMLSelectElement).value);
 
   const apply = () => {
     const filtered = filterFeatures(features, range[0], range[1], state);
     map.setData({ type: "FeatureCollection", features: filtered });
-    updatePanel(filtered, range);
+
+    // Proximity alerts: filtered sightings within `radius` nm of a base.
+    const alerts: SightingFeature[] = [];
+    const counts = new Map<number, number>();
+    for (const f of filtered) {
+      const { nd, nb } = f.properties;
+      if (nd == null || nb == null || nd > radius) continue;
+      alerts.push(f);
+      counts.set(nb, (counts.get(nb) ?? 0) + 1);
+    }
+    map.setAlerts({ type: "FeatureCollection", features: alerts });
+
+    updatePanel(filtered.length, alerts.length, counts, baseById, range, radius, map);
   };
 
   const timeline = new Timeline({
@@ -66,16 +88,16 @@ async function main() {
   });
   range = timeline.current;
 
-  stateSel.addEventListener("change", () => {
-    state = stateSel.value;
+  stateSel.addEventListener("change", () => { state = stateSel.value; apply(); });
+  ($("#radius") as HTMLSelectElement).addEventListener("change", (e) => {
+    radius = Number((e.target as HTMLSelectElement).value);
     apply();
   });
 
   apply();
   ($("#loading") as HTMLElement).style.display = "none";
 
-  // Critical-infrastructure overlays — loaded lazily after first paint so the
-  // sightings map is interactive immediately.
+  // Overlays, loaded after first paint.
   wireLayerToggles(map);
   map.ready.then(async () => {
     const [military, airports] = await Promise.all([
@@ -84,6 +106,62 @@ async function main() {
     ]);
     map.addMilitary(military);
     map.addAirports(airports);
+  });
+}
+
+function updatePanel(
+  inView: number,
+  alertCount: number,
+  counts: Map<number, number>,
+  baseById: Map<number, Base>,
+  range: [number, number],
+  radius: number,
+  map: SkyMap,
+) {
+  $("[data-count]").textContent = inView.toLocaleString();
+  $("#window-label").textContent = fmtWindow(range[0], range[1]);
+  $("#alert-count").textContent = alertCount.toLocaleString();
+
+  const ranked = [...counts.entries()]
+    .map(([id, n]) => ({ base: baseById.get(id)!, n }))
+    .filter((r) => r.base)
+    .sort((a, b) => b.n - a.n);
+
+  // Auto caption from the #1 installation — the wow line.
+  const caption = $("#alert-caption");
+  if (ranked.length) {
+    const top = ranked[0]!;
+    caption.innerHTML = `<span class="text-fog">${top.n}</span> within ${radius} nm of <span class="text-fog">${esc(top.base.name)}</span> this window`;
+  } else {
+    caption.textContent = "No sightings near an installation in this window.";
+  }
+
+  const max = ranked[0]?.n ?? 1;
+  const ol = $("#hotspots");
+  ol.innerHTML = ranked.slice(0, 25)
+    .map((r, i) => {
+      const w = Math.round((100 * r.n) / max);
+      return `<li class="flex items-center gap-2 cursor-pointer hover:bg-navy-700/60 rounded px-1 py-0.5" data-base="${r.base.id}">
+        <span class="text-fog-dim w-4 text-right tnum">${i + 1}</span>
+        <span class="flex-1 min-w-0">
+          <span class="text-fog block truncate">${esc(r.base.name)}</span>
+          <span class="flex items-center gap-1.5 mt-0.5">
+            <span class="text-[9px] text-fog-dim tracking-wide">${BRANCH_ABBR[r.base.branch] ?? "DOD"} · ${esc(r.base.state)}</span>
+          </span>
+        </span>
+        <span class="w-10 h-1 rounded-sm bg-navy-700 overflow-hidden shrink-0">
+          <span class="block h-full" style="width:${w}%;background:#E0463F"></span>
+        </span>
+        <span class="text-danger-bright tnum w-6 text-right">${r.n}</span>
+      </li>`;
+    })
+    .join("");
+
+  ol.querySelectorAll<HTMLElement>("li[data-base]").forEach((li) => {
+    li.addEventListener("click", () => {
+      const b = baseById.get(Number(li.dataset.base));
+      if (b) map.flyTo(b.lon, b.lat, 9);
+    });
   });
 }
 
@@ -96,36 +174,12 @@ const LAYER_IDS: Record<string, string[]> = {
 function wireLayerToggles(map: SkyMap) {
   document.querySelectorAll<HTMLInputElement>("input[data-layer]").forEach((cb) => {
     cb.addEventListener("change", () => {
-      const ids = LAYER_IDS[cb.dataset.layer!];
+      const key = cb.dataset.layer!;
+      if (key === "alerts") { map.setAlertVisible(cb.checked); return; }
+      const ids = LAYER_IDS[key];
       if (ids) map.setLayerVisible(ids, cb.checked);
     });
   });
-}
-
-function updatePanel(filtered: SightingFeature[], range: [number, number]) {
-  $("[data-count]").textContent = filtered.length.toLocaleString();
-  $("#window-label").textContent = `${fmtDate(dayToDate(range[0]))} — ${fmtDate(dayToDate(range[1]))}`;
-
-  const counts = new Map<string, number>();
-  for (const f of filtered) {
-    const s = f.properties.s;
-    counts.set(s, (counts.get(s) ?? 0) + 1);
-  }
-  const top = [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
-  const max = top[0]?.[1] ?? 1;
-  const ul = $("#top-states");
-  ul.innerHTML = top
-    .map(([abbr, n]) => {
-      const w = Math.round((100 * n) / max);
-      return `<li class="flex items-center gap-2">
-        <span class="text-fog-dim w-7">${abbr}</span>
-        <span class="flex-1 h-1.5 rounded-sm bg-navy-700 overflow-hidden">
-          <span class="block h-full bg-cyan" style="width:${w}%"></span>
-        </span>
-        <span class="text-fog tnum w-9 text-right">${n}</span>
-      </li>`;
-    })
-    .join("");
 }
 
 main().catch((err) => {

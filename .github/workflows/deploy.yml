@@ -24,7 +24,7 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run ingest
+      - run: npm run data
       - run: npm run build
         env:
           SKYWATCH_BASE: /skywatch/

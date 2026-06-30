@@ -12,9 +12,19 @@ FAA's own tools and academic dashboards don't provide.
 - Every UAS sighting in the FAA public records (FY2020 – present), clustered on a
   dark vector map.
 - A time scrubber (default: last 90 days) over a monthly histogram of activity.
-- State filter and a live "top states in window" ranking.
+- **Critical-infrastructure overlays:** 654 military installations (HIFLD,
+  branch-classified footprints) and 917 US airports (OurAirports), toggleable.
+- **Proximity alerts:** sightings within a selectable radius (5 / 10 / 25 nm) of a
+  military installation glow red and pulse; a side panel ranks the top-25
+  installations by nearby-sighting volume in the current time window, and the
+  view flies to any installation you click.
 - Click any sighting for the original FAA narrative, reported altitude, incident
-  class, and UAS descriptor.
+  class, UAS descriptor, and distance to the nearest installation.
+
+Proximity is **colocation, not confirmed incursion**: because sightings are placed
+at city/metro centroids, "near a base" is heavily influenced by urban bases (Fort
+Hamilton in NYC, Fort McPherson in Atlanta). The panel ranks proximity for an
+operator to judge — it does not assert intent.
 
 ## Honest geocoding
 
@@ -41,9 +51,14 @@ is an explicit, auditable entry in `scripts/aliases.json`.
 
 ```bash
 npm install
-npm run ingest    # build public/data/sightings.json from data/raw + gazetteer
+npm run data      # ingest FAA + enrich each sighting with nearest-base distance
 npm run dev       # http://localhost:5173
 ```
+
+`npm run data` runs `ingest` (FAA XLSX → `sightings.json`) then `enrich`
+(adds each sighting's distance to the nearest military-installation boundary).
+The infrastructure overlays are prebuilt and committed; regenerate them with
+`npm run fetch-overlays && npm run build-overlays`.
 
 ### Refresh the FAA data
 

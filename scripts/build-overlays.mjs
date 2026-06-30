@@ -122,14 +122,16 @@ function polyCentroid(geom) {
 function buildMilitary() {
   const src = JSON.parse(readFileSync(join(RAW, "milbases.geojson"), "utf8"));
   const features = [];
-  const centroids = [];
+  const bases = []; // compact metadata + centroid, keyed by stable id
   const byBranch = {};
+  let id = 0;
   for (const f of src.features) {
     if (!f.geometry) continue;
     const p = f.properties || {};
     const branch = branchOf(p.COMPONENT);
     byBranch[branch] = (byBranch[branch] ?? 0) + 1;
     const props = {
+      id,
       name: p.SITE_NAME,
       branch,
       component: p.COMPONENT,
@@ -138,10 +140,11 @@ function buildMilitary() {
     };
     features.push({ type: "Feature", geometry: f.geometry, properties: props });
     const c = polyCentroid(f.geometry);
-    if (c) centroids.push({ type: "Feature", geometry: { type: "Point", coordinates: c }, properties: props });
+    bases.push({ id, name: props.name, branch, state: props.state, joint: props.joint, lon: c ? c[0] : null, lat: c ? c[1] : null });
+    id++;
   }
   writeFileSync(join(OUT, "military.json"), JSON.stringify({ type: "FeatureCollection", features }));
-  writeFileSync(join(OUT, "military-centroids.json"), JSON.stringify({ type: "FeatureCollection", features: centroids }));
+  writeFileSync(join(OUT, "bases.json"), JSON.stringify(bases));
   return { count: features.length, byBranch };
 }
 
@@ -150,4 +153,4 @@ const mil = buildMilitary();
 console.log("Skywatch overlays");
 console.log(`  airports  ${air.count}  (large ${air.large}, medium ${air.medium})`);
 console.log(`  military  ${mil.count}  ${JSON.stringify(mil.byBranch)}`);
-console.log(`  wrote ${OUT}/{airports,military,military-centroids}.json`);
+console.log(`  wrote ${OUT}/{airports,military,bases}.json`);

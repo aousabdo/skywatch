@@ -10,6 +10,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "ingest": "node scripts/ingest.mjs",
+    "enrich": "node scripts/enrich-proximity.mjs",
+    "data": "node scripts/ingest.mjs && node scripts/enrich-proximity.mjs",
     "fetch-faa": "node scripts/fetch-faa.mjs",
     "fetch-overlays": "node scripts/fetch-overlays.mjs",
     "build-overlays": "node scripts/build-overlays.mjs"

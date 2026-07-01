@@ -116,6 +116,12 @@
           <span class="font-mono text-fog-dim text-[10px]">654</span>
         </label>
         <label class="flex items-center gap-2.5 mb-2.5 cursor-pointer select-none">
+          <input type="checkbox" data-layer="nsufr" class="accent-cyan w-3.5 h-3.5" />
+          <span class="w-2.5 h-2.5 rounded-sm inline-block shrink-0 border" style="border-color:#E06A92"></span>
+          <span class="text-fog flex-1">FAA no-drone zones</span>
+          <span class="font-mono text-fog-dim text-[10px]">2.3k</span>
+        </label>
+        <label class="flex items-center gap-2.5 mb-2.5 cursor-pointer select-none">
           <input type="checkbox" data-layer="airports" class="accent-cyan w-3.5 h-3.5" />
           <span class="w-2.5 h-2.5 rounded-full inline-block shrink-0 border" style="border-color:#9DB6CE"></span>
           <span class="text-fog flex-1">Major airports</span>
@@ -208,8 +214,8 @@
               <p>"Near a base" is the great-circle distance from a sighting's <span class="text-fog">city centroid</span> to the nearest military-installation boundary (<a class="text-cyan underline" href="https://hifld-geoplatform.opendata.arcgis.com/" target="_blank" rel="noopener">HIFLD</a>). Because sightings are city-centroids, proximity is driven heavily by urban bases (Fort Hamilton in NYC, Fort McPherson in Atlanta). The hotspots panel ranks proximity for an operator to judge — <span class="text-fog">it does not assert intent or confirmed incursion.</span></p>
             </section>
             <section>
-              <h3 class="text-cyan text-[11px] uppercase tracking-[0.18em] mb-1.5">Critical infrastructure</h3>
-              <p>654 military installations (HIFLD "USA Military Bases") and 917 large/medium US airports (<a class="text-cyan underline" href="https://ourairports.com/data/" target="_blank" rel="noopener">OurAirports</a>, public domain).</p>
+              <h3 class="text-cyan text-[11px] uppercase tracking-[0.18em] mb-1.5">Critical infrastructure &amp; restricted airspace</h3>
+              <p>654 military installations (HIFLD "USA Military Bases") and 917 large/medium US airports (<a class="text-cyan underline" href="https://ourairports.com/data/" target="_blank" rel="noopener">OurAirports</a>, public domain). The <span class="text-fog">FAA no-drone zones</span> layer is the FAA's <a class="text-cyan underline" href="https://udds-faa.opendata.arcgis.com/datasets/national-security-uas-flight-restrictions" target="_blank" rel="noopener">National Security UAS Flight Restrictions</a> — 2,257 federally designated no-drone areas over DoD sites, federal prisons, nuclear facilities, the border, and national landmarks.</p>
             </section>
             <section>
               <h3 class="text-cyan text-[11px] uppercase tracking-[0.18em] mb-1.5">International incidents — curated</h3>

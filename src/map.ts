@@ -226,6 +226,32 @@ export class SkyMap {
     this.hoverCursor("military-fill");
   }
 
+  // FAA National Security UAS Flight Restrictions — federal no-drone zones.
+  // Crimson outline (a "prohibited" signal, distinct from base amber and alert red).
+  addNsufr(fc: GeoJSON.FeatureCollection) {
+    if (this.map.getSource("nsufr")) return;
+    this.map.addSource("nsufr", { type: "geojson", data: fc });
+    this.map.addLayer({
+      id: "nsufr-fill", type: "fill", source: "nsufr",
+      layout: { visibility: "none" },
+      paint: { "fill-color": "#D0537A", "fill-opacity": 0.12 },
+    }, "clusters");
+    this.map.addLayer({
+      id: "nsufr-line", type: "line", source: "nsufr",
+      layout: { visibility: "none" },
+      paint: { "line-color": "#E06A92", "line-width": 1, "line-opacity": 0.7 },
+    }, "clusters");
+    this.map.on("click", "nsufr-fill", (e) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      new maplibregl.Popup({ closeButton: true, offset: 6 })
+        .setLngLat(e.lngLat)
+        .setHTML(nsufrPopup(f.properties as NsufrProps))
+        .addTo(this.map);
+    });
+    this.hoverCursor("nsufr-fill");
+  }
+
   addAirports(fc: GeoJSON.FeatureCollection) {
     if (this.map.getSource("airports")) return;
     this.map.addSource("airports", { type: "geojson", data: fc });
@@ -343,6 +369,19 @@ export class SkyMap {
 interface MilProps { name: string; branch: string; component: string; state: string; joint: string | null; }
 interface AirportProps { name: string; muni: string | null; iata: string | null; icao: string | null; size: string; }
 interface IntlProps { date: string; place: string; country: string; category: string; summary: string; source: string; }
+interface NsufrProps { base: string; branch: string; airspace: string | null; state: string | null; reason: string; floor: string | null; ceiling: string | null; }
+
+function nsufrPopup(p: NsufrProps): string {
+  const alt = [p.floor, p.ceiling].filter(Boolean).join(" – ");
+  return `
+    <div style="padding:12px 14px 14px">
+      <div style="font-family:'JetBrains Mono',monospace;color:#E06A92;font-size:10px;letter-spacing:.1em;text-transform:uppercase">No-drone zone · ${esc(p.branch)}</div>
+      <div style="color:#E8EDF2;font-weight:600;font-size:14px;margin-top:3px">${esc(p.base)}</div>
+      <div style="color:#9DB0C4;font-size:11px;margin-top:2px">${[p.state, p.airspace, alt].filter((x): x is string => !!x).map(esc).join(" · ")}</div>
+      <div style="color:#C5D2E0;font-size:11px;margin-top:7px">${esc(p.reason)}</div>
+      <div style="color:#5E7088;font-size:9.5px;margin-top:9px;border-top:1px solid #123059;padding-top:7px">FAA National Security UAS Flight Restrictions</div>
+    </div>`;
+}
 
 const CATEGORY_LABEL: Record<string, string> = {
   airport: "Airport disruption", infrastructure: "Infrastructure attack",

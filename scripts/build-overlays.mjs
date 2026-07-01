@@ -148,9 +148,53 @@ function buildMilitary() {
   return { count: features.length, byBranch };
 }
 
+// --- FAA National Security UAS Flight Restrictions (federal no-drone zones) ---
+
+function cleanBranch(b) {
+  const t = String(b ?? "").trim().toUpperCase();
+  const map = {
+    USAF: "Air Force", AFGSC: "Air Force (Global Strike)", USA: "Army", ARMY: "Army",
+    ARNG: "Army (Guard)", USN: "Navy", "USN-USCG (CGC)": "Navy / Coast Guard",
+    USMC: "Marine Corps", USCG: "Coast Guard", "U.S. COAST GUARD": "Coast Guard",
+    "BUREAU OF PRISONS": "Bureau of Prisons", CBP: "CBP", NASA: "NASA", NRC: "NRC",
+    "NATIONAL PARK SERVICE": "National Park Service", USACE: "Army Corps of Engineers",
+    "JTF SOUTHERN BORDER": "JTF Southern Border",
+  };
+  return map[t] ?? (t && t !== "N/A" ? String(b).trim() : "Other federal");
+}
+
+function buildNsufr() {
+  const src = JSON.parse(readFileSync(join(RAW, "nsufr.geojson"), "utf8"));
+  const features = [];
+  const byBranch = {};
+  for (const f of src.features) {
+    if (!f.geometry) continue;
+    const p = f.properties || {};
+    const branch = cleanBranch(p.Branch);
+    byBranch[branch] = (byBranch[branch] ?? 0) + 1;
+    features.push({
+      type: "Feature",
+      geometry: f.geometry,
+      properties: {
+        base: p.Base || p.Facility || "Restricted site",
+        branch,
+        airspace: p.Airspace || null,
+        state: p.State || null,
+        reason: p.Reason || "National Security",
+        floor: p.Floor ?? null,
+        ceiling: p.Ceiling ?? null,
+      },
+    });
+  }
+  writeFileSync(join(OUT, "nsufr.json"), JSON.stringify({ type: "FeatureCollection", features }));
+  return { count: features.length, byBranch };
+}
+
 const air = buildAirports();
 const mil = buildMilitary();
+const nsufr = buildNsufr();
 console.log("Skywatch overlays");
 console.log(`  airports  ${air.count}  (large ${air.large}, medium ${air.medium})`);
 console.log(`  military  ${mil.count}  ${JSON.stringify(mil.byBranch)}`);
-console.log(`  wrote ${OUT}/{airports,military,bases}.json`);
+console.log(`  nsufr     ${nsufr.count}  no-drone zones`);
+console.log(`  wrote ${OUT}/{airports,military,bases,nsufr}.json`);

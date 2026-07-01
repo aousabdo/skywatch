@@ -29,4 +29,24 @@ const MIL =
   "&returnGeometry=true&maxAllowableOffset=0.004&geometryPrecision=5&outSR=4326&f=geojson&resultRecordCount=1000";
 await get(MIL, "milbases.geojson");
 
+// FAA National Security UAS Flight Restrictions — federal no-drone zones
+// (paginated; ~2,257 generalized polygons).
+const NSUFR_FS =
+  "https://services6.arcgis.com/ssFJjBXIUyZDrSYZ/arcgis/rest/services/DoD_Mar_13/FeatureServer/0/query";
+const nsufr = { type: "FeatureCollection", features: [] };
+for (let offset = 0; offset < 4000; offset += 1000) {
+  const url =
+    `${NSUFR_FS}?where=1%3D1&outFields=Base,Branch,Airspace,State,Reason,Floor,Ceiling` +
+    `&returnGeometry=true&maxAllowableOffset=0.005&geometryPrecision=4&outSR=4326&f=geojson` +
+    `&resultOffset=${offset}&resultRecordCount=1000`;
+  const res = await fetch(url, { headers: { "User-Agent": UA } });
+  if (!res.ok) break;
+  const page = await res.json();
+  const feats = page.features ?? [];
+  nsufr.features.push(...feats);
+  if (feats.length < 1000) break;
+}
+writeFileSync(join(RAW, "nsufr.geojson"), JSON.stringify(nsufr));
+console.log(`  nsufr.geojson  ${(Buffer.byteLength(JSON.stringify(nsufr)) / 1024).toFixed(0)} KB (${nsufr.features.length} zones)`);
+
 console.log("\nRun `npm run build-overlays` next.");

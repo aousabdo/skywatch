@@ -42,7 +42,7 @@ interface ViewState {
   l: Record<string, boolean>; // layer visibility
 }
 
-const DEFAULT_LAYERS = { sightings: true, alerts: true, military: false, airports: false, intl: false };
+const DEFAULT_LAYERS = { sightings: true, alerts: true, military: false, nsufr: false, airports: false, intl: false };
 
 function readHash(): ViewState {
   const p = new URLSearchParams(location.hash.slice(1));
@@ -301,14 +301,17 @@ async function main() {
     apply();
     map.setAlertVisible(view.l.alerts ?? true);
     map.setLayerVisible(LAYER_IDS.sightings!, view.l.sightings ?? true);
-    const [military, airports] = await Promise.all([
+    const [military, nsufr, airports] = await Promise.all([
       loadGeoJSON(BASE, "data/overlays/military.json"),
+      loadGeoJSON(BASE, "data/overlays/nsufr.json"),
       loadGeoJSON(BASE, "data/overlays/airports.json"),
     ]);
     map.addMilitary(military);
+    map.addNsufr(nsufr);
     map.addAirports(airports);
     map.addInternational(intlFc);
     map.setLayerVisible(LAYER_IDS.military!, view.l.military ?? false);
+    map.setLayerVisible(LAYER_IDS.nsufr!, view.l.nsufr ?? false);
     map.setLayerVisible(LAYER_IDS.airports!, view.l.airports ?? false);
     map.setLayerVisible(LAYER_IDS.intl!, view.l.intl ?? false);
     if (view.l.intl) map.flyToWorld();
@@ -484,6 +487,7 @@ function updatePanel(
 const LAYER_IDS: Record<string, string[]> = {
   sightings: ["clusters", "cluster-count", "point"],
   military: ["military-fill", "military-line"],
+  nsufr: ["nsufr-fill", "nsufr-line"],
   airports: ["airports-point"],
   intl: ["intl-halo", "intl-core"],
 };

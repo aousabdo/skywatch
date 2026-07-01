@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0B1F3A"/>
+  <rect y="470" width="1200" height="160" fill="#0D2545"/>
+
+  <!-- scattered sighting dots (periphery only) -->
+  <g fill="#3DB9D8">
+    <circle cx="160" cy="150" r="5" opacity="0.7"/>
+    <circle cx="1050" cy="140" r="5" opacity="0.7"/>
+    <circle cx="1110" cy="250" r="5" opacity="0.6"/>
+    <circle cx="980" cy="330" r="5" opacity="0.6"/>
+    <circle cx="1130" cy="410" r="5" opacity="0.6"/>
+    <circle cx="120" cy="300" r="5" opacity="0.6"/>
+    <circle cx="1080" cy="200" r="5" opacity="0.5"/>
+  </g>
+  <!-- proximity alerts -->
+  <circle cx="1040" cy="285" r="9" fill="#E0463F"/>
+  <circle cx="1040" cy="285" r="20" fill="none" stroke="#E0463F" stroke-opacity="0.4" stroke-width="3"/>
+
+  <text x="80" y="150" font-family="monospace" font-size="46" fill="#3DB9D8">[~]</text>
+
+  <text x="78" y="320" font-family="Helvetica, Arial, sans-serif" font-weight="700" font-size="118" fill="#E8EDF2">SKYWATCH</text>
+  <text x="86" y="378" font-family="Helvetica, Arial, sans-serif" font-weight="400" font-size="30" fill="#9DB0C4">COUNTER-UAS INCIDENT ATLAS</text>
+
+  <text x="82" y="540" font-family="Helvetica, Arial, sans-serif" font-size="26" fill="#C5D2E0">FAA drone sightings · military installations · proximity alerts · global incidents</text>
+
+  <text x="1120" y="150" text-anchor="end" font-family="monospace" font-size="22" fill="#3DB9D8">Built by OCEANS LLC</text>
+</svg>

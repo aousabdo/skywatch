@@ -4,7 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Skywatch — Counter-UAS Incident Atlas</title>
-    <meta name="description" content="A public-data Counter-UAS Incident Atlas: FAA UAS sightings mapped against critical infrastructure. Built by OCEANS LLC." />
+    <meta name="description" content="A public-data Counter-UAS Incident Atlas: FAA UAS sightings mapped against US critical infrastructure, with proximity alerts and an international incident layer. Built by OCEANS LLC." />
+
+    <!-- Open Graph / social share -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Skywatch" />
+    <meta property="og:title" content="Skywatch — Counter-UAS Incident Atlas" />
+    <meta property="og:description" content="FAA drone sightings joined to military installations and airports, with proximity alerts and a global incident layer. The CONUS + overseas drone picture in one operator view." />
+    <meta property="og:url" content="https://aousabdo.github.io/skywatch/" />
+    <meta property="og:image" content="https://aousabdo.github.io/skywatch/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Skywatch — Counter-UAS Incident Atlas" />
+    <meta name="twitter:description" content="FAA drone sightings joined to critical infrastructure, with proximity alerts and a global incident layer. Built by OCEANS LLC." />
+    <meta name="twitter:image" content="https://aousabdo.github.io/skywatch/og-image.png" />
+    <meta name="theme-color" content="#0B1F3A" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -19,16 +35,22 @@
         <div class="pointer-events-auto">
           <div class="flex items-baseline gap-3">
             <h1 class="text-fog font-semibold text-lg tracking-[0.18em]">SKYWATCH</h1>
-            <span class="text-fog-dim text-xs uppercase tracking-[0.22em]">Counter-UAS Incident Atlas</span>
+            <span class="hidden sm:inline text-fog-dim text-xs uppercase tracking-[0.22em]">Counter-UAS Incident Atlas</span>
           </div>
-          <p class="text-fog-dim text-[11px] mt-0.5">FAA UAS sightings · public records</p>
+          <p class="hidden sm:block text-fog-dim text-[11px] mt-0.5">FAA UAS sightings · public records<span id="data-through"></span></p>
         </div>
         <div id="live-count" class="pointer-events-auto text-right">
           <div class="font-mono text-cyan text-2xl font-semibold tnum leading-none" data-count>—</div>
-          <div class="text-fog-dim text-[10px] uppercase tracking-[0.18em] mt-1">sightings in view</div>
-          <button id="copy-link" class="mt-2 text-fog-dim hover:text-cyan text-[10px] uppercase tracking-[0.16em] transition-colors">⧉ Copy link</button>
+          <div class="hidden sm:block text-fog-dim text-[10px] uppercase tracking-[0.18em] mt-1">sightings in view</div>
+          <button id="copy-link" class="hidden sm:block ml-auto mt-2 text-fog-dim hover:text-cyan text-[10px] uppercase tracking-[0.16em] transition-colors">⧉ Copy link</button>
         </div>
       </header>
+
+      <!-- Mobile-only panel toggles -->
+      <div id="mobile-toggles" class="absolute top-16 left-0 right-0 z-20 flex justify-center gap-2 px-5">
+        <button data-toggle="panel" class="rounded-full border border-navy-600 bg-navy-800/90 backdrop-blur-sm text-fog text-[11px] uppercase tracking-[0.15em] px-4 py-1.5">Stats</button>
+        <button data-toggle="layers-panel" class="rounded-full border border-navy-600 bg-navy-800/90 backdrop-blur-sm text-fog text-[11px] uppercase tracking-[0.15em] px-4 py-1.5">Layers</button>
+      </div>
 
       <!-- Stats / filter / hotspots panel -->
       <aside id="panel" class="absolute top-20 left-5 z-10 w-72 rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm p-4 text-sm max-h-[calc(100vh-9rem)] overflow-y-auto">
@@ -65,7 +87,7 @@
       </aside>
 
       <!-- Layers + disclosure -->
-      <div class="absolute top-20 right-5 z-10 w-64 rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm p-4 text-[11px] leading-relaxed">
+      <div id="layers-panel" class="absolute top-20 right-5 z-10 w-64 max-h-[calc(100vh-9rem)] overflow-y-auto rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm p-4 text-[11px] leading-relaxed">
         <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-3">Layers</div>
 
         <label class="flex items-center gap-2.5 mb-2.5 cursor-pointer select-none">

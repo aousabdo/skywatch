@@ -232,6 +232,25 @@ async function main() {
     } catch { /* clipboard unavailable */ }
   });
 
+  // Data-freshness stamp.
+  const through = new Date(data.meta.dateMax + "T00:00:00Z").toLocaleDateString("en-US", { year: "numeric", month: "short", timeZone: "UTC" });
+  $("#data-through").textContent = ` · data through ${through}`;
+
+  // Mobile panel toggles (mutually exclusive overlays).
+  document.querySelectorAll<HTMLButtonElement>("#mobile-toggles button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = document.getElementById(btn.dataset.toggle!)!;
+      const wasOpen = target.classList.contains("open");
+      $("#panel").classList.remove("open");
+      $("#layers-panel").classList.remove("open");
+      if (!wasOpen) target.classList.add("open");
+    });
+  });
+  map.map.on("click", () => {
+    $("#panel").classList.remove("open");
+    $("#layers-panel").classList.remove("open");
+  });
+
   apply();
   ($("#loading") as HTMLElement).style.display = "none";
 

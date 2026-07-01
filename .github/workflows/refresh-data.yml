@@ -1,0 +1,35 @@
+name: Refresh FAA data
+
+# FAA posts UAS sightings quarterly. Check monthly, re-ingest, and commit only
+# when the data actually changed — the commit triggers the deploy workflow.
+on:
+  schedule:
+    - cron: "0 8 1 * *" # 08:00 UTC on the 1st of each month
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run fetch-faa
+      - run: npm run data
+      - name: Commit if the data changed
+        run: |
+          git config user.name "aousabdo"
+          git config user.email "aousabdo@gmail.com"
+          git add data/raw/faa public/data/sightings.json
+          if git diff --cached --quiet; then
+            echo "FAA data unchanged — nothing to commit."
+          else
+            git commit -m "Refresh FAA UAS sightings data"
+            git push
+          fi

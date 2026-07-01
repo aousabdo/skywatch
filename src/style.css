@@ -78,3 +78,13 @@ input[type="range"].scrub::-moz-range-thumb {
 }
 
 .tnum { font-variant-numeric: tabular-nums; }
+
+/* Mobile: side panels become on-demand overlays toggled from the top bar. */
+@media (max-width: 639px) {
+  #panel, #layers-panel { display: none; width: calc(100vw - 2.5rem); max-height: calc(100vh - 12rem); }
+  #panel.open, #layers-panel.open { display: block; }
+  #timeline { bottom: 2.25rem; }
+}
+@media (min-width: 640px) {
+  #mobile-toggles { display: none; }
+}

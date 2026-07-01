@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import { epochDay } from "./data";
+import { epochDay, dayToDate } from "./data";
 
 interface TimelineOpts {
   container: HTMLElement;
@@ -129,6 +129,19 @@ export class Timeline {
 
   get current(): [number, number] {
     return [epochDay(iso(this.selection[0])), epochDay(iso(this.selection[1]))];
+  }
+
+  get domainDays(): [number, number] {
+    const [d0, d1] = this.x.domain() as [Date, Date];
+    return [epochDay(iso(d0)), epochDay(iso(d1))];
+  }
+
+  // Programmatically move the brush (used by the time-lapse player). Firing the
+  // brush 'brush' event drives the same onChange path as manual dragging.
+  setWindowDays(day0: number, day1: number) {
+    const px0 = this.x(dayToDate(day0));
+    const px1 = this.x(dayToDate(day1));
+    this.gBrush.call(this.brush.move as any, [px0, px1]);
   }
 }
 

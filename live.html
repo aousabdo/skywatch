@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <script type="module" crossorigin src="/skywatch/assets/index-uUr6FAIa.js"></script>
+    <link rel="stylesheet" crossorigin href="/skywatch/assets/index-WwEfDiae.css">
   </head>
   <body>
     <div id="app">
@@ -33,10 +35,7 @@
       <!-- Stats / filter / hotspots panel -->
       <aside id="panel" class="absolute top-20 left-5 z-10 w-72 rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm p-4 text-sm max-h-[calc(100vh-9rem)] overflow-y-auto">
         <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-1">Window</div>
-        <div id="window-label" class="font-mono text-fog text-[13px] tnum">—</div>
-        <button id="play" class="mt-2 mb-4 w-full flex items-center justify-center gap-2 rounded border border-cyan/40 bg-cyan/10 hover:bg-cyan/20 text-cyan text-[11px] py-1.5 transition-colors">
-          <span id="play-icon">▶</span><span id="play-label">Play the timeline</span>
-        </button>
+        <div id="window-label" class="font-mono text-fog text-[13px] mb-4 tnum">—</div>
 
         <!-- Proximity headline -->
         <div class="rounded-md border border-danger/40 bg-danger/10 p-3 mb-4">
@@ -118,6 +117,5 @@
       </div>
     </div>
 
-    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

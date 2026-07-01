@@ -96,6 +96,7 @@ async function main() {
   let range: [number, number] = [0, 0];
   let radius = view.r;
   let topBaseId: number | null = null;
+  let playing = false;
 
   const radiusSel = $<HTMLSelectElement>("#radius");
   radiusSel.value = String(radius);
@@ -122,7 +123,7 @@ async function main() {
     map.setAlerts({ type: "FeatureCollection", features: alerts });
 
     topBaseId = updatePanel(filtered.length, alerts.length, counts, baseById, range, radius, map);
-    sync();
+    if (!playing) sync();
   };
 
   const timeline = new Timeline({
@@ -151,6 +152,43 @@ async function main() {
     if (b) map.flyTo(b.lon, b.lat, 9);
   });
   $("#reset-view").addEventListener("click", () => map.resetView());
+
+  // Time-lapse player: sweep a fixed-width window across the full history.
+  // setInterval (not rAF) so playback also advances when the tab is backgrounded;
+  // progress is driven by elapsed wall-clock time, so it always finishes in ~15s.
+  let playTimer: ReturnType<typeof setInterval> | null = null;
+  const setPlayUI = (on: boolean) => {
+    $("#play-icon").textContent = on ? "❙❙" : "▶";
+    $("#play-label").textContent = on ? "Pause" : "Play the timeline";
+  };
+  const stopPlay = () => {
+    if (!playing) return;
+    playing = false;
+    if (playTimer) clearInterval(playTimer);
+    playTimer = null;
+    setPlayUI(false);
+    sync();
+  };
+  const startPlay = () => {
+    const [minDay, maxDay] = timeline.domainDays;
+    const span = maxDay - minDay;
+    const w = Math.min(range[1] - range[0], Math.max(30, Math.floor(span / 8)));
+    const startPos = minDay;
+    const endPos = Math.max(minDay, maxDay - w);
+    const durationMs = 15000;
+    const t0 = performance.now();
+    playing = true;
+    setPlayUI(true);
+    playTimer = setInterval(() => {
+      const p = Math.min(1, (performance.now() - t0) / durationMs);
+      const pos = Math.round(startPos + p * (endPos - startPos));
+      timeline.setWindowDays(pos, pos + w); // drives apply() via onChange
+      if (p >= 1) stopPlay();
+    }, 60);
+  };
+  $("#play").addEventListener("click", () => (playing ? stopPlay() : startPlay()));
+  // Manual interaction cancels playback.
+  ($("#timeline") as HTMLElement).addEventListener("pointerdown", stopPlay);
   $("#copy-link").addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(location.href);

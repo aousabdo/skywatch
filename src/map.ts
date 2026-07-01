@@ -29,6 +29,7 @@ export class SkyMap {
       minZoom: 2.5,
       maxZoom: 16,
       attributionControl: { compact: true },
+      preserveDrawingBuffer: true, // allow exporting the map to an image
     });
     this.map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
     this.map.on("load", () => this.onLoad());
@@ -326,6 +327,11 @@ export class SkyMap {
 
   resetView() {
     this.map.easeTo({ center: [-98.5, 39.5], zoom: 3.6, duration: 800 });
+  }
+
+  getMapCanvas(): HTMLCanvasElement {
+    this.map.redraw();
+    return this.map.getCanvas();
   }
 
   private hoverCursor(layer: string) {

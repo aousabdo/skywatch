@@ -314,15 +314,89 @@ async function main() {
     if (view.l.intl) map.flyToWorld();
   });
 
-  // Methodology modal.
-  const modal = $("#methodology") as HTMLElement;
-  const showModal = (on: boolean) => {
-    modal.classList.toggle("hidden", !on);
-    modal.classList.toggle("flex", on);
+  // Modals (About + Methodology).
+  const setModal = (id: string, on: boolean) => {
+    const m = $(`#${id}`) as HTMLElement;
+    m.classList.toggle("hidden", !on);
+    m.classList.toggle("flex", on);
   };
-  $("#open-methodology").addEventListener("click", () => showModal(true));
-  $("#close-methodology").addEventListener("click", () => showModal(false));
-  modal.addEventListener("click", (e) => { if (e.target === modal) showModal(false); });
+  $("#open-methodology").addEventListener("click", () => setModal("methodology", true));
+  $("#close-methodology").addEventListener("click", () => setModal("methodology", false));
+  $("#methodology").addEventListener("click", (e) => { if (e.target === e.currentTarget) setModal("methodology", false); });
+  $("#open-about").addEventListener("click", () => setModal("about", true));
+  $("#close-about").addEventListener("click", () => setModal("about", false));
+  $("#about").addEventListener("click", (e) => { if (e.target === e.currentTarget) setModal("about", false); });
+  $("#about-methodology").addEventListener("click", () => { setModal("about", false); setModal("methodology", true); });
+
+  // Export a branded PNG of the current view.
+  $("#export-brief").addEventListener("click", () => exportBrief(map, through));
+}
+
+function exportBrief(map: SkyMap, dataThrough: string) {
+  const src = map.getMapCanvas();
+  const dpr = src.clientWidth ? src.width / src.clientWidth : 1;
+  const headerH = Math.round(118 * dpr);
+  const footerH = Math.round(44 * dpr);
+  const out = document.createElement("canvas");
+  out.width = src.width;
+  out.height = src.height + headerH + footerH;
+  const ctx = out.getContext("2d")!;
+  const pad = 30 * dpr;
+
+  ctx.fillStyle = "#0B1F3A";
+  ctx.fillRect(0, 0, out.width, out.height);
+
+  ctx.fillStyle = "#E8EDF2";
+  ctx.font = `700 ${33 * dpr}px Inter, Arial, sans-serif`;
+  ctx.fillText("SKYWATCH", pad, 48 * dpr);
+  const titleW = ctx.measureText("SKYWATCH").width;
+  ctx.fillStyle = "#9DB0C4";
+  ctx.font = `${14 * dpr}px Inter, Arial, sans-serif`;
+  ctx.fillText("COUNTER-UAS INCIDENT ATLAS", pad + titleW + 16 * dpr, 48 * dpr);
+
+  const windowLabel = $("#window-label").textContent ?? "";
+  const count = $("[data-count]").textContent ?? "";
+  const caption = ($("#alert-caption").textContent ?? "").trim();
+  ctx.fillStyle = "#3DB9D8";
+  ctx.font = `${16 * dpr}px "JetBrains Mono", monospace`;
+  ctx.fillText(windowLabel, pad, 82 * dpr);
+  ctx.fillStyle = "#C5D2E0";
+  ctx.font = `${15 * dpr}px Inter, Arial, sans-serif`;
+  ctx.fillText(`${count} sightings in view${caption ? "  ·  " + caption : ""}`, pad, 104 * dpr);
+
+  const finish = () => {
+    try {
+      out.toBlob((blob) => {
+        if (!blob) return;
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `skywatch-${new Date().toISOString().slice(0, 10)}.png`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }, "image/png");
+    } catch { /* tainted canvas — map tiles without CORS */ }
+  };
+
+  // Footer band.
+  const footY = headerH + src.height;
+  const drawFooter = () => {
+    ctx.fillStyle = "#0D2545";
+    ctx.fillRect(0, footY, out.width, footerH);
+    ctx.fillStyle = "#3DB9D8";
+    ctx.font = `${13 * dpr}px "JetBrains Mono", monospace`;
+    ctx.fillText("[~] Built by OCEANS LLC", pad, footY + 28 * dpr);
+    ctx.fillStyle = "#5E7088";
+    ctx.font = `${12 * dpr}px Inter, Arial, sans-serif`;
+    ctx.textAlign = "right";
+    ctx.fillText(`City/metro centroids · FAA UAS Sightings · data through ${dataThrough}`, out.width - pad, footY + 28 * dpr);
+    ctx.textAlign = "left";
+  };
+
+  try {
+    ctx.drawImage(src, 0, headerH);
+  } catch { /* ignore */ }
+  drawFooter();
+  finish();
 }
 
 function renderYoY(byMonth: Record<string, number>) {

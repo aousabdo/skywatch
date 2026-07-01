@@ -42,7 +42,10 @@
         <div id="live-count" class="pointer-events-auto text-right">
           <div class="font-mono text-cyan text-2xl font-semibold tnum leading-none" data-count>—</div>
           <div class="hidden sm:block text-fog-dim text-[10px] uppercase tracking-[0.18em] mt-1">sightings in view</div>
-          <button id="copy-link" class="hidden sm:block ml-auto mt-2 text-fog-dim hover:text-cyan text-[10px] uppercase tracking-[0.16em] transition-colors">⧉ Copy link</button>
+          <div class="hidden sm:flex items-center justify-end gap-3 mt-2">
+            <button id="export-brief" class="text-fog-dim hover:text-cyan text-[10px] uppercase tracking-[0.16em] transition-colors">⬇ Export</button>
+            <button id="copy-link" class="text-fog-dim hover:text-cyan text-[10px] uppercase tracking-[0.16em] transition-colors">⧉ Copy link</button>
+          </div>
         </div>
       </header>
 
@@ -140,9 +143,38 @@
       <div id="timeline" class="absolute bottom-9 left-5 right-5 z-10 rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm px-4 pt-2 pb-3"></div>
 
       <!-- OCEANS credit -->
-      <div class="absolute bottom-2 left-5 z-10 flex items-center gap-2 text-fog-dim text-[11px]">
+      <button id="open-about" class="absolute bottom-2 left-5 z-10 flex items-center gap-2 text-fog-dim hover:text-fog text-[11px] transition-colors">
         <span class="font-mono text-cyan text-sm">[~]</span>
         <span>Built by OCEANS LLC</span>
+      </button>
+
+      <!-- About / OCEANS modal -->
+      <div id="about" class="absolute inset-0 z-30 hidden items-center justify-center p-6" style="background:rgba(5,12,24,0.7)">
+        <div class="w-full max-w-xl rounded-xl border border-navy-700 bg-navy-800 p-7 shadow-2xl">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <span class="font-mono text-cyan text-2xl">[~]</span>
+              <div>
+                <h2 class="text-fog font-semibold text-lg tracking-wide">Skywatch</h2>
+                <p class="text-fog-dim text-xs mt-0.5">A Counter-UAS Incident Atlas by OCEANS LLC</p>
+              </div>
+            </div>
+            <button id="close-about" class="text-fog-dim hover:text-fog text-xl leading-none px-2">×</button>
+          </div>
+          <div class="space-y-4 text-[13px] leading-relaxed text-fog-dim">
+            <p>Skywatch joins the domestic and overseas drone-incident picture into a single operator view: every FAA-logged UAS sighting, mapped against US military installations and airports, with proximity alerts, a time-lapse of nine years of activity, and a curated layer of notable international incidents.</p>
+            <p><span class="text-fog">OCEANS LLC</span> is a Service-Disabled Veteran-Owned Small Business (SDVOSB) and federal contractor based in Jacksonville, Florida, founded in 2012, focused on Counter-UAS, maritime, and ISR mission support.</p>
+            <div class="rounded-md border border-navy-700 bg-navy-700/40 p-3.5">
+              <div class="text-fog-dim text-[10px] uppercase tracking-[0.18em] mb-1.5">Built for</div>
+              <p class="text-fog text-[12.5px]">Program and procurement teams across DHS S&amp;T, CBP, USSS, and the Department of War evaluating the domestic drone-incursion picture and C-UAS mission need.</p>
+            </div>
+            <div class="flex flex-wrap gap-4 pt-1 text-[12px]">
+              <a class="text-cyan hover:text-cyan-bright underline" href="https://oceansllc.com" target="_blank" rel="noopener">oceansllc.com</a>
+              <a class="text-cyan hover:text-cyan-bright underline" href="https://github.com/aousabdo/skywatch" target="_blank" rel="noopener">Source on GitHub</a>
+              <button id="about-methodology" class="text-cyan hover:text-cyan-bright underline">Methodology &amp; sources</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Methodology modal -->

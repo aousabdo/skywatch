@@ -252,6 +252,48 @@ export class SkyMap {
     this.hoverCursor("airports-point");
   }
 
+  // Curated international incidents — a warm-amber reference layer, time-filtered
+  // from main. Distinct hue from US sightings (cyan) and proximity alerts (red).
+  addInternational(fc: GeoJSON.FeatureCollection) {
+    if (this.map.getSource("intl")) return;
+    this.map.addSource("intl", { type: "geojson", data: fc });
+    this.map.addLayer({
+      id: "intl-halo", type: "circle", source: "intl",
+      layout: { visibility: "none" },
+      paint: { "circle-color": "#F2A65A", "circle-radius": 13, "circle-opacity": 0.16, "circle-blur": 0.7 },
+    });
+    this.map.addLayer({
+      id: "intl-core", type: "circle", source: "intl",
+      layout: { visibility: "none" },
+      paint: {
+        "circle-color": "#F2A65A",
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 1, 4, 6, 7],
+        "circle-opacity": 0.95,
+        "circle-stroke-color": "#2A1A08",
+        "circle-stroke-width": 1,
+      },
+    });
+    this.map.on("click", "intl-core", (e) => {
+      const f = e.features?.[0];
+      if (!f) return;
+      const geom = f.geometry as GeoJSON.Point;
+      new maplibregl.Popup({ closeButton: true, maxWidth: "330px", offset: 8 })
+        .setLngLat(geom.coordinates as [number, number])
+        .setHTML(intlPopup(f.properties as IntlProps))
+        .addTo(this.map);
+    });
+    this.hoverCursor("intl-core");
+  }
+
+  setIntl(fc: GeoJSON.FeatureCollection) {
+    const src = this.map.getSource("intl") as maplibregl.GeoJSONSource | undefined;
+    if (src) src.setData(fc);
+  }
+
+  flyToWorld() {
+    this.map.flyTo({ center: [20, 30], zoom: 1.4, speed: 1.3, curve: 1.5 });
+  }
+
   setLayerVisible(ids: string[], visible: boolean) {
     for (const id of ids) {
       if (this.map.getLayer(id)) {
@@ -294,6 +336,24 @@ export class SkyMap {
 
 interface MilProps { name: string; branch: string; component: string; state: string; joint: string | null; }
 interface AirportProps { name: string; muni: string | null; iata: string | null; icao: string | null; size: string; }
+interface IntlProps { date: string; place: string; country: string; category: string; summary: string; source: string; }
+
+const CATEGORY_LABEL: Record<string, string> = {
+  airport: "Airport disruption", infrastructure: "Infrastructure attack",
+  military: "Military / base", maritime: "Maritime", vip: "Leadership / VIP",
+};
+
+function intlPopup(p: IntlProps): string {
+  const date = new Date(p.date + "T00:00:00Z").toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
+  return `
+    <div style="padding:13px 15px 15px">
+      <div style="font-family:'JetBrains Mono',monospace;color:#F2A65A;font-size:10px;letter-spacing:.1em;text-transform:uppercase">${esc(CATEGORY_LABEL[p.category] ?? p.category)}</div>
+      <div style="color:#E8EDF2;font-weight:600;font-size:14px;margin-top:3px">${esc(p.place)}, ${esc(p.country)}</div>
+      <div style="font-family:'JetBrains Mono',monospace;color:#9DB0C4;font-size:11px;margin-top:1px">${esc(date)}</div>
+      <div style="color:#C5D2E0;font-size:11.5px;line-height:1.5;margin-top:8px">${esc(p.summary)}</div>
+      <div style="color:#5E7088;font-size:9.5px;margin-top:10px;border-top:1px solid #123059;padding-top:7px">Curated · source: ${esc(p.source)}</div>
+    </div>`;
+}
 
 function basePopup(p: MilProps): string {
   return `

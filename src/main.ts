@@ -1,7 +1,7 @@
 import "./style.css";
 import { SkyMap } from "./map";
 import { Timeline } from "./timeline";
-import { loadDataset, loadGeoJSON, toFeatures, filterFeatures, dayToDate } from "./data";
+import { loadDataset, loadGeoJSON, toFeatures, filterFeatures, dayToDate, epochDay } from "./data";
 import type { Base, Sighting, SightingFeature } from "./types";
 
 const BASE = import.meta.env.BASE_URL;
@@ -41,7 +41,7 @@ interface ViewState {
   l: Record<string, boolean>; // layer visibility
 }
 
-const DEFAULT_LAYERS = { sightings: true, alerts: true, military: false, airports: false };
+const DEFAULT_LAYERS = { sightings: true, alerts: true, military: false, airports: false, intl: false };
 
 function readHash(): ViewState {
   const p = new URLSearchParams(location.hash.slice(1));
@@ -69,14 +69,27 @@ function writeHash(v: ViewState) {
 }
 
 async function main() {
-  const [data, basesArr] = await Promise.all([
+  const [data, basesArr, intlFc] = await Promise.all([
     loadDataset(BASE),
     fetch(`${BASE}data/overlays/bases.json`).then((r) => r.json() as Promise<Base[]>),
+    loadGeoJSON(BASE, "data/intl/incidents.json"),
   ]);
   const sightings = data.sightings;
   const byId = new Map<number, Sighting>(sightings.map((s) => [s.id, s]));
   const baseById = new Map<number, Base>(basesArr.map((b) => [b.id, b]));
   const features = toFeatures(sightings);
+
+  // Curated international incidents, tagged with an epoch day so they share the
+  // time window with the FAA sightings (and the time-lapse).
+  const intlByDay = intlFc.features.map((f) => ({
+    f,
+    day: epochDay((f.properties as { date: string }).date),
+  }));
+
+  // Extend the scrubbable domain back to the earliest international incident so
+  // pre-2019 events (Gatwick, Caracas, Mosul) are reachable and join the sweep.
+  const domainMin = [data.meta.dateMin, ...intlByDay.map((x) => (x.f.properties as { date: string }).date)]
+    .sort()[0]!;
 
   const map = new SkyMap("map");
   map.setSightingLookup((id) => byId.get(id));
@@ -122,6 +135,10 @@ async function main() {
     }
     map.setAlerts({ type: "FeatureCollection", features: alerts });
 
+    // International incidents within the same window.
+    const intl = intlByDay.filter((x) => x.day >= range[0] && x.day <= range[1]).map((x) => x.f);
+    map.setIntl({ type: "FeatureCollection", features: intl });
+
     topBaseId = updatePanel(filtered.length, alerts.length, counts, baseById, range, radius, map);
     if (!playing) sync();
   };
@@ -129,7 +146,7 @@ async function main() {
   const timeline = new Timeline({
     container: $("#timeline"),
     byMonth: data.meta.byMonth,
-    dateMin: data.meta.dateMin,
+    dateMin: domainMin,
     dateMax: data.meta.dateMax,
     initial: view.w,
     onChange: (min, max) => {
@@ -152,6 +169,22 @@ async function main() {
     if (b) map.flyTo(b.lon, b.lat, 9);
   });
   $("#reset-view").addEventListener("click", () => map.resetView());
+
+  // International layer: its curated incidents span 2017–2024, so enabling it
+  // widens the window to the full history and pulls the camera out to a world view.
+  const intlCb = $<HTMLInputElement>('input[data-layer="intl"]');
+  intlCb.addEventListener("change", () => {
+    view.l.intl = intlCb.checked;
+    map.setLayerVisible(LAYER_IDS.intl!, intlCb.checked);
+    if (intlCb.checked) {
+      stopPlay();
+      const [minDay, maxDay] = timeline.domainDays;
+      timeline.setWindowDays(minDay, maxDay); // triggers apply(); sync() runs there
+      map.flyToWorld();
+    } else {
+      sync();
+    }
+  });
 
   // Time-lapse player: sweep a fixed-width window across the full history.
   // setInterval (not rAF) so playback also advances when the tab is backgrounded;
@@ -216,9 +249,22 @@ async function main() {
     ]);
     map.addMilitary(military);
     map.addAirports(airports);
+    map.addInternational(intlFc);
     map.setLayerVisible(LAYER_IDS.military!, view.l.military ?? false);
     map.setLayerVisible(LAYER_IDS.airports!, view.l.airports ?? false);
+    map.setLayerVisible(LAYER_IDS.intl!, view.l.intl ?? false);
+    if (view.l.intl) map.flyToWorld();
   });
+
+  // Methodology modal.
+  const modal = $("#methodology") as HTMLElement;
+  const showModal = (on: boolean) => {
+    modal.classList.toggle("hidden", !on);
+    modal.classList.toggle("flex", on);
+  };
+  $("#open-methodology").addEventListener("click", () => showModal(true));
+  $("#close-methodology").addEventListener("click", () => showModal(false));
+  modal.addEventListener("click", (e) => { if (e.target === modal) showModal(false); });
 }
 
 function updatePanel(
@@ -283,10 +329,12 @@ const LAYER_IDS: Record<string, string[]> = {
   sightings: ["clusters", "cluster-count", "point"],
   military: ["military-fill", "military-line"],
   airports: ["airports-point"],
+  intl: ["intl-halo", "intl-core"],
 };
 
 function wireLayerToggles(map: SkyMap, layers: Record<string, boolean>, sync: () => void) {
   document.querySelectorAll<HTMLInputElement>("input[data-layer]").forEach((cb) => {
+    if (cb.dataset.layer === "intl") return; // handled separately (needs the timeline)
     cb.addEventListener("change", () => {
       const key = cb.dataset.layer!;
       layers[key] = cb.checked;

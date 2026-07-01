@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <script type="module" crossorigin src="/skywatch/assets/index-lN6A4APq.js"></script>
+    <link rel="stylesheet" crossorigin href="/skywatch/assets/index-DEyX1ZHM.css">
   </head>
   <body>
     <div id="app">
@@ -84,17 +86,11 @@
           <span class="text-fog flex-1">Military installations</span>
           <span class="font-mono text-fog-dim text-[10px]">654</span>
         </label>
-        <label class="flex items-center gap-2.5 mb-2.5 cursor-pointer select-none">
+        <label class="flex items-center gap-2.5 mb-1 cursor-pointer select-none">
           <input type="checkbox" data-layer="airports" class="accent-cyan w-3.5 h-3.5" />
           <span class="w-2.5 h-2.5 rounded-full inline-block shrink-0 border" style="border-color:#9DB6CE"></span>
           <span class="text-fog flex-1">Major airports</span>
           <span class="font-mono text-fog-dim text-[10px]">917</span>
-        </label>
-        <label class="flex items-center gap-2.5 mb-1 cursor-pointer select-none">
-          <input type="checkbox" data-layer="intl" class="accent-cyan w-3.5 h-3.5" />
-          <span class="w-2.5 h-2.5 rounded-full inline-block shrink-0" style="background:#F2A65A"></span>
-          <span class="text-fog flex-1">Intl. incidents <span class="text-fog-dim">· curated</span></span>
-          <span class="font-mono text-fog-dim text-[10px]">30</span>
         </label>
 
         <div class="flex gap-2 mt-3">
@@ -103,8 +99,7 @@
         </div>
 
         <div class="border-t border-navy-700 mt-3 pt-3 text-fog-dim">
-          Sightings sit at their <span class="text-fog">city/metro centroid</span> — FAA public records carry no exact coordinates.
-          <button id="open-methodology" class="block mt-2 text-cyan hover:text-cyan-bright underline underline-offset-2">Methodology &amp; sources →</button>
+          Sightings sit at their <span class="text-fog">city/metro centroid</span> — FAA public records carry no exact coordinates. Click any point, base, or airport for detail.
         </div>
       </div>
 
@@ -117,52 +112,6 @@
         <span>Built by OCEANS LLC</span>
       </div>
 
-      <!-- Methodology modal -->
-      <div id="methodology" class="absolute inset-0 z-30 hidden items-center justify-center p-6" style="background:rgba(5,12,24,0.7)">
-        <div class="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-xl border border-navy-700 bg-navy-800 p-7 shadow-2xl">
-          <div class="flex items-start justify-between mb-4">
-            <div>
-              <h2 class="text-fog font-semibold text-lg tracking-wide">Methodology &amp; sources</h2>
-              <p class="text-fog-dim text-xs mt-1">How Skywatch is built, and what it does and doesn't claim.</p>
-            </div>
-            <button id="close-methodology" class="text-fog-dim hover:text-fog text-xl leading-none px-2">×</button>
-          </div>
-
-          <div class="space-y-5 text-[13px] leading-relaxed text-fog-dim">
-            <section>
-              <h3 class="text-cyan text-[11px] uppercase tracking-[0.18em] mb-1.5">Primary data — FAA UAS Sightings</h3>
-              <p>Every US point is one drone sighting from the <a class="text-cyan underline" href="https://www.faa.gov/uas/resources/public_records/uas_sightings_report" target="_blank" rel="noopener">FAA UAS Sightings public records</a> (quarterly, FY2020–present). The records contain only <span class="text-fog">date, state, city, and a narrative</span> — no coordinates. Altitude, incident class, and UAS descriptor are parsed from the narrative text.</p>
-            </section>
-            <section>
-              <h3 class="text-cyan text-[11px] uppercase tracking-[0.18em] mb-1.5">Geocoding &amp; precision</h3>
-              <p>Each sighting is placed at a centroid via the <a class="text-cyan underline" href="https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html" target="_blank" rel="noopener">US Census Gazetteer</a>, with the precision recorded per point and shown in every popup:</p>
-              <ul class="mt-2 space-y-1 font-mono text-[12px] text-fog">
-                <li>· <span class="text-cyan">city</span> — exact Census place match (~91%)</li>
-                <li>· <span class="text-cyan">alias</span> — curated metro/airport centroid (~6%)</li>
-                <li>· <span class="text-cyan">state</span> — fallback state centroid (~2%)</li>
-              </ul>
-              <p class="mt-2">Nothing is placed at a fabricated precise location.</p>
-            </section>
-            <section>
-              <h3 class="text-cyan text-[11px] uppercase tracking-[0.18em] mb-1.5">Proximity alerts — colocation, not incursion</h3>
-              <p>"Near a base" is the great-circle distance from a sighting's <span class="text-fog">city centroid</span> to the nearest military-installation boundary (<a class="text-cyan underline" href="https://hifld-geoplatform.opendata.arcgis.com/" target="_blank" rel="noopener">HIFLD</a>). Because sightings are city-centroids, proximity is driven heavily by urban bases (Fort Hamilton in NYC, Fort McPherson in Atlanta). The hotspots panel ranks proximity for an operator to judge — <span class="text-fog">it does not assert intent or confirmed incursion.</span></p>
-            </section>
-            <section>
-              <h3 class="text-cyan text-[11px] uppercase tracking-[0.18em] mb-1.5">Critical infrastructure</h3>
-              <p>654 military installations (HIFLD "USA Military Bases") and 917 large/medium US airports (<a class="text-cyan underline" href="https://ourairports.com/data/" target="_blank" rel="noopener">OurAirports</a>, public domain).</p>
-            </section>
-            <section>
-              <h3 class="text-cyan text-[11px] uppercase tracking-[0.18em] mb-1.5">International incidents — curated</h3>
-              <p>The overseas layer is a <span class="text-fog">curated, illustrative set of 30 well-known, publicly reported drone incidents</span> (2017–2024) — Gatwick, Abqaiq, Moscow, Tower 22, the Red Sea, and others — each carrying a source attribution. It is <span class="text-fog">not a comprehensive database</span>; it exists to frame the US picture against notable overseas events, and is labelled "curated" throughout.</p>
-            </section>
-            <section>
-              <h3 class="text-cyan text-[11px] uppercase tracking-[0.18em] mb-1.5">Build</h3>
-              <p>Static and client-side — no backend, no login, no paid APIs. Source and pipeline: <a class="text-cyan underline" href="https://github.com/aousabdo/skywatch" target="_blank" rel="noopener">github.com/aousabdo/skywatch</a>.</p>
-            </section>
-          </div>
-        </div>
-      </div>
-
       <!-- Loading overlay -->
       <div id="loading" class="absolute inset-0 z-20 flex items-center justify-center bg-navy">
         <div class="text-center">
@@ -171,6 +120,5 @@
       </div>
     </div>
 
-    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

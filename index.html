@@ -56,9 +56,10 @@
       <aside id="panel" class="absolute top-20 left-5 z-10 w-72 rounded-lg border border-navy-700 bg-navy-800/85 backdrop-blur-sm p-4 text-sm max-h-[calc(100vh-9rem)] overflow-y-auto">
         <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-1">Window</div>
         <div id="window-label" class="font-mono text-fog text-[13px] tnum">—</div>
-        <button id="play" class="mt-2 mb-4 w-full flex items-center justify-center gap-2 rounded border border-cyan/40 bg-cyan/10 hover:bg-cyan/20 text-cyan text-[11px] py-1.5 transition-colors">
+        <button id="play" class="mt-2 mb-3 w-full flex items-center justify-center gap-2 rounded border border-cyan/40 bg-cyan/10 hover:bg-cyan/20 text-cyan text-[11px] py-1.5 transition-colors">
           <span id="play-icon">▶</span><span id="play-label">Play the timeline</span>
         </button>
+        <div id="yoy" class="mb-4 text-[11px] text-fog-dim"></div>
 
         <!-- Proximity headline -->
         <div class="rounded-md border border-danger/40 bg-danger/10 p-3 mb-4">
@@ -79,6 +80,11 @@
 
         <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-2">Top installations in window</div>
         <ol id="hotspots" class="space-y-1 font-mono text-[11.5px] mb-4"></ol>
+
+        <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-2">Search narratives</div>
+        <input id="search" type="search" placeholder="e.g. near miss, quadcopter, MCO" autocomplete="off"
+          class="w-full bg-navy-700 border border-navy-600 rounded px-2 py-1.5 text-fog text-[12px] outline-none focus:border-cyan placeholder:text-fog-dim/60 mb-1" />
+        <div id="search-info" class="text-fog-dim text-[10px] mb-4 h-3"></div>
 
         <div class="text-fog-dim text-[10px] uppercase tracking-[0.2em] mb-2">Filter by state</div>
         <select id="state-filter" class="w-full bg-navy-700 border border-navy-600 rounded px-2 py-1.5 text-fog text-[13px] outline-none focus:border-cyan">

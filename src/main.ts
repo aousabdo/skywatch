@@ -38,6 +38,7 @@ interface ViewState {
   w?: [string, string]; // window ISO dates
   r: number;            // proximity radius nm
   s: string;            // state filter
+  q: string;            // narrative search
   l: Record<string, boolean>; // layer visibility
 }
 
@@ -54,6 +55,7 @@ function readHash(): ViewState {
     w: wm ? [wm[1]!, wm[2]!] : undefined,
     r: [5, 10, 25].includes(Number(p.get("r"))) ? Number(p.get("r")) : 10,
     s: p.get("s") ?? "",
+    q: p.get("q") ?? "",
     l: layers,
   };
 }
@@ -63,6 +65,7 @@ function writeHash(v: ViewState) {
   if (v.w) p.set("w", `${v.w[0]},${v.w[1]}`);
   p.set("r", String(v.r));
   if (v.s) p.set("s", v.s);
+  if (v.q) p.set("q", v.q);
   const on = Object.entries(v.l).filter(([, vis]) => vis).map(([k]) => k);
   p.set("l", on.join(","));
   history.replaceState(null, "", `#${p.toString()}`);
@@ -108,21 +111,37 @@ async function main() {
   let state = view.s;
   let range: [number, number] = [0, 0];
   let radius = view.r;
+  let search = view.q;
   let topBaseId: number | null = null;
   let playing = false;
+  const faaMinDay = epochDay(data.meta.dateMin);
 
   const radiusSel = $<HTMLSelectElement>("#radius");
   radiusSel.value = String(radius);
   stateSel.value = state;
+  const searchInput = $<HTMLInputElement>("#search");
+  searchInput.value = search;
   for (const cb of document.querySelectorAll<HTMLInputElement>("input[data-layer]")) {
     cb.checked = view.l[cb.dataset.layer!] ?? cb.checked;
   }
 
-  const sync = () => writeHash({ w: [isoOfDay(range[0]), isoOfDay(range[1])], r: radius, s: state, l: view.l });
+  // National year-over-year trend (last 12 months vs the prior 12), computed once.
+  renderYoY(data.meta.byMonth);
+
+  const sync = () => writeHash({ w: [isoOfDay(range[0]), isoOfDay(range[1])], r: radius, s: state, q: search, l: view.l });
+
+  const matchesSearch = (f: SightingFeature, q: string) => {
+    const s = byId.get(f.properties.id);
+    return !!s && (s.n.toLowerCase().includes(q) || s.c.toLowerCase().includes(q));
+  };
 
   const apply = () => {
-    const filtered = filterFeatures(features, range[0], range[1], state);
+    const inWindow = filterFeatures(features, range[0], range[1], state);
+    const q = search.trim().toLowerCase();
+    const filtered = q ? inWindow.filter((f) => matchesSearch(f, q)) : inWindow;
     map.setData({ type: "FeatureCollection", features: filtered });
+
+    $("#search-info").textContent = q ? `${filtered.length.toLocaleString()} of ${inWindow.length.toLocaleString()} match "${search.trim()}"` : "";
 
     // Proximity alerts: filtered sightings within `radius` nm of a base.
     const alerts: SightingFeature[] = [];
@@ -135,11 +154,26 @@ async function main() {
     }
     map.setAlerts({ type: "FeatureCollection", features: alerts });
 
+    // Prior-period base counts (same length window immediately before) to flag rising hotspots.
+    const width = range[1] - range[0];
+    const priorCounts = new Map<number, number>();
+    for (const f of features) {
+      const p = f.properties;
+      if (p.d >= range[0] || p.d < range[0] - width) continue;
+      if (state && p.s !== state) continue;
+      if (p.nd == null || p.nb == null || p.nd > radius) continue;
+      if (q && !matchesSearch(f, q)) continue;
+      priorCounts.set(p.nb, (priorCounts.get(p.nb) ?? 0) + 1);
+    }
+
+    // Only flag "rising" when a real prior period exists within the FAA data.
+    const showRising = range[0] > faaMinDay;
+
     // International incidents within the same window.
     const intl = intlByDay.filter((x) => x.day >= range[0] && x.day <= range[1]).map((x) => x.f);
     map.setIntl({ type: "FeatureCollection", features: intl });
 
-    topBaseId = updatePanel(filtered.length, alerts.length, counts, baseById, range, radius, map);
+    topBaseId = updatePanel(filtered.length, alerts.length, counts, priorCounts, showRising, baseById, range, radius, map);
     if (!playing) sync();
   };
 
@@ -160,6 +194,11 @@ async function main() {
   radiusSel.addEventListener("change", (e) => {
     radius = Number((e.target as HTMLSelectElement).value);
     apply();
+  });
+  let searchTimer: ReturnType<typeof setTimeout>;
+  searchInput.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { search = searchInput.value; apply(); }, 160);
   });
 
   // Quick-nav controls.
@@ -286,10 +325,26 @@ async function main() {
   modal.addEventListener("click", (e) => { if (e.target === modal) showModal(false); });
 }
 
+function renderYoY(byMonth: Record<string, number>) {
+  const months = Object.keys(byMonth).sort();
+  const el = $("#yoy");
+  if (months.length < 24) { el.textContent = ""; return; }
+  const sum = (ms: string[]) => ms.reduce((s, m) => s + (byMonth[m] ?? 0), 0);
+  const last12 = sum(months.slice(-12));
+  const prev12 = sum(months.slice(-24, -12));
+  if (!prev12) { el.textContent = ""; return; }
+  const pct = Math.round(((last12 - prev12) / prev12) * 100);
+  const up = pct >= 0;
+  const color = up ? "#E0463F" : "#5FD2EE";
+  el.innerHTML = `National trend <span style="color:${color};font-weight:600">${up ? "▲" : "▼"} ${Math.abs(pct)}%</span> <span class="text-fog-dim">YoY · ${last12.toLocaleString()} in last 12 mo</span>`;
+}
+
 function updatePanel(
   inView: number,
   alertCount: number,
   counts: Map<number, number>,
+  priorCounts: Map<number, number>,
+  showRising: boolean,
   baseById: Map<number, Base>,
   range: [number, number],
   radius: number,
@@ -318,12 +373,20 @@ function updatePanel(
   ol.innerHTML = ranked.slice(0, 25)
     .map((r, i) => {
       const w = Math.round((100 * r.n) / max);
+      // "Rising" = a genuine acceleration vs the prior equal-length period,
+      // not merely any increase (the whole dataset trends up).
+      const prior = priorCounts.get(r.base.id) ?? 0;
+      const rising = showRising && r.n >= 3 && r.n >= prior * 1.5 + 2;
+      const riseTag = rising
+        ? `<span class="text-[9px] font-semibold" style="color:#E0463F" title="up from ${prior} in the prior ${range[1] - range[0]}-day period">▲ rising</span>`
+        : "";
       return `<li class="flex items-center gap-2 cursor-pointer hover:bg-navy-700/60 rounded px-1 py-0.5" data-base="${r.base.id}">
         <span class="text-fog-dim w-4 text-right tnum">${i + 1}</span>
         <span class="flex-1 min-w-0">
           <span class="text-fog block truncate">${esc(r.base.name)}</span>
           <span class="flex items-center gap-1.5 mt-0.5">
             <span class="text-[9px] text-fog-dim tracking-wide">${BRANCH_ABBR[r.base.branch] ?? "DOD"} · ${esc(r.base.state)}</span>
+            ${riseTag}
           </span>
         </span>
         <span class="w-10 h-1 rounded-sm bg-navy-700 overflow-hidden shrink-0">

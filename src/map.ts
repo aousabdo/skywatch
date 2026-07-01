@@ -18,6 +18,8 @@ export class SkyMap {
   private lookup: (id: number) => Sighting | undefined = () => undefined;
   private baseLookup: (id: number | null) => string | null = () => null;
   private alertVisible = true;
+  private signalMarker: maplibregl.Marker | null = null;
+  private onSignalClick: (() => void) | null = null;
 
   constructor(container: string) {
     this.ready = new Promise((res) => (this.resolveReady = res));
@@ -319,6 +321,25 @@ export class SkyMap {
 
   flyToWorld() {
     this.map.flyTo({ center: [20, 30], zoom: 1.4, speed: 1.3, curve: 1.5 });
+  }
+
+  // The auto-signal callout, anchored to the current top hotspot.
+  setSignal(lon: number, lat: number, headline: string, sub: string, onClick: () => void) {
+    if (!this.signalMarker) {
+      const el = document.createElement("div");
+      el.className = "signal-callout";
+      el.innerHTML = `<div class="signal-card"></div><div class="signal-connector"></div><div class="signal-dot"></div>`;
+      el.querySelector(".signal-card")!.addEventListener("click", () => this.onSignalClick?.());
+      this.signalMarker = new maplibregl.Marker({ element: el, anchor: "bottom" });
+    }
+    this.onSignalClick = onClick;
+    (this.signalMarker.getElement().querySelector(".signal-card") as HTMLElement).innerHTML =
+      `${headline}<div class="signal-sub">${sub}</div>`;
+    this.signalMarker.setLngLat([lon, lat]).addTo(this.map);
+  }
+
+  clearSignal() {
+    this.signalMarker?.remove();
   }
 
   setLayerVisible(ids: string[], visible: boolean) {

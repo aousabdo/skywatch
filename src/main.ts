@@ -174,6 +174,16 @@ async function main() {
     map.setIntl({ type: "FeatureCollection", features: intl });
 
     topBaseId = updatePanel(filtered.length, alerts.length, counts, priorCounts, showRising, baseById, range, radius, map);
+
+    // Auto-signal callout at the #1 hotspot (the brief's signature caption).
+    const topN = topBaseId != null ? counts.get(topBaseId) ?? 0 : 0;
+    if (topBaseId != null && view.l.alerts && topN > 0) {
+      const b = baseById.get(topBaseId)!;
+      map.setSignal(b.lon, b.lat, `<b>${topN}</b> within ${radius} nm of <b>${esc(b.name)}</b>`, "top hotspot · this window", () => map.flyTo(b.lon, b.lat, 9));
+    } else {
+      map.clearSignal();
+    }
+
     if (!playing) sync();
   };
 
@@ -208,6 +218,14 @@ async function main() {
     if (b) map.flyTo(b.lon, b.lat, 9);
   });
   $("#reset-view").addEventListener("click", () => map.resetView());
+
+  // Proximity-alert toggle: also re-runs apply() so the signal callout appears/clears.
+  const alertsCb = $<HTMLInputElement>('input[data-layer="alerts"]');
+  alertsCb.addEventListener("change", () => {
+    view.l.alerts = alertsCb.checked;
+    map.setAlertVisible(alertsCb.checked);
+    apply();
+  });
 
   // International layer: its curated incidents span 2017–2024, so enabling it
   // widens the window to the full history and pulls the camera out to a world view.
@@ -494,12 +512,13 @@ const LAYER_IDS: Record<string, string[]> = {
 
 function wireLayerToggles(map: SkyMap, layers: Record<string, boolean>, sync: () => void) {
   document.querySelectorAll<HTMLInputElement>("input[data-layer]").forEach((cb) => {
-    if (cb.dataset.layer === "intl") return; // handled separately (needs the timeline)
+    // intl (needs the timeline) and alerts (needs to refresh the signal) are handled in main().
+    if (cb.dataset.layer === "intl" || cb.dataset.layer === "alerts") return;
     cb.addEventListener("change", () => {
       const key = cb.dataset.layer!;
       layers[key] = cb.checked;
-      if (key === "alerts") map.setAlertVisible(cb.checked);
-      else { const ids = LAYER_IDS[key]; if (ids) map.setLayerVisible(ids, cb.checked); }
+      const ids = LAYER_IDS[key];
+      if (ids) map.setLayerVisible(ids, cb.checked);
       sync();
     });
   });

@@ -79,6 +79,29 @@ input[type="range"].scrub::-moz-range-thumb {
 
 .tnum { font-variant-numeric: tabular-nums; }
 
+/* Auto-signal callout — anchored to the top hotspot, tracks the map. */
+.signal-callout { display: flex; flex-direction: column; align-items: center; }
+.signal-card {
+  pointer-events: auto; cursor: pointer; white-space: nowrap;
+  background: #0D2545; border: 1px solid #A12727; color: #E8EDF2;
+  font-family: var(--font-sans); font-size: 11px; line-height: 1.35;
+  padding: 5px 10px; border-radius: 6px; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+}
+.signal-card b { color: #E0463F; font-variant-numeric: tabular-nums; }
+.signal-card .signal-sub { color: #9DB0C4; font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; }
+.signal-connector { width: 1px; height: 14px; background: #A12727; }
+.signal-dot {
+  width: 11px; height: 11px; border-radius: 50%; background: #E0463F;
+  animation: signalPulse 1.6s ease-out infinite;
+}
+@keyframes signalPulse {
+  0% { box-shadow: 0 0 0 0 rgba(224, 70, 63, 0.55); }
+  70% { box-shadow: 0 0 0 13px rgba(224, 70, 63, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(224, 70, 63, 0); }
+}
+
+/* Mobile: side panels become on-demand overlays toggled from the top bar. */
+
 /* Mobile: side panels become on-demand overlays toggled from the top bar. */
 @media (max-width: 639px) {
   #panel, #layers-panel { display: none; width: calc(100vw - 2.5rem); max-height: calc(100vh - 12rem); }

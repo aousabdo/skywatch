@@ -6,6 +6,7 @@ interface TimelineOpts {
   byMonth: Record<string, number>;
   dateMin: string;
   dateMax: string;
+  initial?: [string, string]; // optional starting window (ISO dates); default = last 90 days
   onChange: (minDay: number, maxDay: number) => void;
 }
 
@@ -32,10 +33,16 @@ export class Timeline {
     const t1 = new Date(opts.dateMax + "T00:00:00Z");
     this.x = d3.scaleTime().domain([t0, t1]);
 
-    // Default window: last 90 days of available data.
-    const start = new Date(t1);
-    start.setUTCDate(start.getUTCDate() - 90);
-    this.selection = [start < t0 ? t0 : start, t1];
+    const clamp = (d: Date) => (d < t0 ? t0 : d > t1 ? t1 : d);
+    if (opts.initial) {
+      // Restore a shared window from the URL.
+      this.selection = [clamp(new Date(opts.initial[0] + "T00:00:00Z")), clamp(new Date(opts.initial[1] + "T00:00:00Z"))];
+    } else {
+      // Default window: last 90 days of available data.
+      const start = new Date(t1);
+      start.setUTCDate(start.getUTCDate() - 90);
+      this.selection = [clamp(start), t1];
+    }
 
     this.render();
     window.addEventListener("resize", () => this.render());

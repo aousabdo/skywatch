@@ -26,6 +26,7 @@
         <div id="live-count" class="pointer-events-auto text-right">
           <div class="font-mono text-cyan text-2xl font-semibold tnum leading-none" data-count>—</div>
           <div class="text-fog-dim text-[10px] uppercase tracking-[0.18em] mt-1">sightings in view</div>
+          <button id="copy-link" class="mt-2 text-fog-dim hover:text-cyan text-[10px] uppercase tracking-[0.16em] transition-colors">⧉ Copy link</button>
         </div>
       </header>
 
@@ -86,6 +87,11 @@
           <span class="text-fog flex-1">Major airports</span>
           <span class="font-mono text-fog-dim text-[10px]">917</span>
         </label>
+
+        <div class="flex gap-2 mt-3">
+          <button id="jump-top" class="flex-1 rounded border border-danger/50 bg-danger/10 hover:bg-danger/20 text-danger-bright text-[11px] py-1.5 transition-colors">Top hotspot</button>
+          <button id="reset-view" class="flex-1 rounded border border-navy-600 bg-navy-700 hover:bg-navy-600 text-fog text-[11px] py-1.5 transition-colors">Reset · CONUS</button>
+        </div>
 
         <div class="border-t border-navy-700 mt-3 pt-3 text-fog-dim">
           Sightings sit at their <span class="text-fog">city/metro centroid</span> — FAA public records carry no exact coordinates. Click any point, base, or airport for detail.

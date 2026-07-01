@@ -282,6 +282,10 @@ export class SkyMap {
     this.map.flyTo({ center: [lon, lat], zoom, speed: 1.4, curve: 1.5 });
   }
 
+  resetView() {
+    this.map.easeTo({ center: [-98.5, 39.5], zoom: 3.6, duration: 800 });
+  }
+
   private hoverCursor(layer: string) {
     this.map.on("mouseenter", layer, () => (this.map.getCanvas().style.cursor = "pointer"));
     this.map.on("mouseleave", layer, () => (this.map.getCanvas().style.cursor = ""));

@@ -31,6 +31,42 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const fmtDate = (d: Date) =>
   d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 const fmtWindow = (a: number, b: number) => `${fmtDate(dayToDate(a))} — ${fmtDate(dayToDate(b))}`;
+const isoOfDay = (day: number) => dayToDate(day).toISOString().slice(0, 10);
+
+// --- Shareable view state, encoded in the URL hash -----------------------
+interface ViewState {
+  w?: [string, string]; // window ISO dates
+  r: number;            // proximity radius nm
+  s: string;            // state filter
+  l: Record<string, boolean>; // layer visibility
+}
+
+const DEFAULT_LAYERS = { sightings: true, alerts: true, military: false, airports: false };
+
+function readHash(): ViewState {
+  const p = new URLSearchParams(location.hash.slice(1));
+  const w = p.get("w");
+  const layers = { ...DEFAULT_LAYERS };
+  const l = p.get("l");
+  if (l !== null) for (const k of Object.keys(layers)) layers[k as keyof typeof layers] = l.split(",").includes(k);
+  const wm = w?.match(/^(\d{4}-\d{2}-\d{2}),(\d{4}-\d{2}-\d{2})$/);
+  return {
+    w: wm ? [wm[1]!, wm[2]!] : undefined,
+    r: [5, 10, 25].includes(Number(p.get("r"))) ? Number(p.get("r")) : 10,
+    s: p.get("s") ?? "",
+    l: layers,
+  };
+}
+
+function writeHash(v: ViewState) {
+  const p = new URLSearchParams();
+  if (v.w) p.set("w", `${v.w[0]},${v.w[1]}`);
+  p.set("r", String(v.r));
+  if (v.s) p.set("s", v.s);
+  const on = Object.entries(v.l).filter(([, vis]) => vis).map(([k]) => k);
+  p.set("l", on.join(","));
+  history.replaceState(null, "", `#${p.toString()}`);
+}
 
 async function main() {
   const [data, basesArr] = await Promise.all([
@@ -46,6 +82,8 @@ async function main() {
   map.setSightingLookup((id) => byId.get(id));
   map.setBaseLookup((id) => (id == null ? null : baseById.get(id)?.name ?? null));
 
+  const view = readHash();
+
   const stateSel = $<HTMLSelectElement>("#state-filter");
   for (const [abbr] of Object.entries(data.meta.byState).sort((a, b) => b[1] - a[1])) {
     const opt = document.createElement("option");
@@ -54,9 +92,19 @@ async function main() {
     stateSel.appendChild(opt);
   }
 
-  let state = "";
+  let state = view.s;
   let range: [number, number] = [0, 0];
-  let radius = Number(($("#radius") as HTMLSelectElement).value);
+  let radius = view.r;
+  let topBaseId: number | null = null;
+
+  const radiusSel = $<HTMLSelectElement>("#radius");
+  radiusSel.value = String(radius);
+  stateSel.value = state;
+  for (const cb of document.querySelectorAll<HTMLInputElement>("input[data-layer]")) {
+    cb.checked = view.l[cb.dataset.layer!] ?? cb.checked;
+  }
+
+  const sync = () => writeHash({ w: [isoOfDay(range[0]), isoOfDay(range[1])], r: radius, s: state, l: view.l });
 
   const apply = () => {
     const filtered = filterFeatures(features, range[0], range[1], state);
@@ -73,7 +121,8 @@ async function main() {
     }
     map.setAlerts({ type: "FeatureCollection", features: alerts });
 
-    updatePanel(filtered.length, alerts.length, counts, baseById, range, radius, map);
+    topBaseId = updatePanel(filtered.length, alerts.length, counts, baseById, range, radius, map);
+    sync();
   };
 
   const timeline = new Timeline({
@@ -81,6 +130,7 @@ async function main() {
     byMonth: data.meta.byMonth,
     dateMin: data.meta.dateMin,
     dateMax: data.meta.dateMax,
+    initial: view.w,
     onChange: (min, max) => {
       range = [min, max];
       apply();
@@ -89,23 +139,47 @@ async function main() {
   range = timeline.current;
 
   stateSel.addEventListener("change", () => { state = stateSel.value; apply(); });
-  ($("#radius") as HTMLSelectElement).addEventListener("change", (e) => {
+  radiusSel.addEventListener("change", (e) => {
     radius = Number((e.target as HTMLSelectElement).value);
     apply();
+  });
+
+  // Quick-nav controls.
+  $("#jump-top").addEventListener("click", () => {
+    if (topBaseId == null) return;
+    const b = baseById.get(topBaseId);
+    if (b) map.flyTo(b.lon, b.lat, 9);
+  });
+  $("#reset-view").addEventListener("click", () => map.resetView());
+  $("#copy-link").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      const btn = $("#copy-link");
+      const prev = btn.textContent;
+      btn.textContent = "✓ Copied";
+      setTimeout(() => (btn.textContent = prev), 1400);
+    } catch { /* clipboard unavailable */ }
   });
 
   apply();
   ($("#loading") as HTMLElement).style.display = "none";
 
-  // Overlays, loaded after first paint.
-  wireLayerToggles(map);
+  // Overlays, loaded after first paint; visibility restored from the URL.
+  wireLayerToggles(map, view.l, sync);
   map.ready.then(async () => {
+    // Re-run now that the sightings + alert sources exist, so both populate on
+    // first load regardless of when the style finished loading.
+    apply();
+    map.setAlertVisible(view.l.alerts ?? true);
+    map.setLayerVisible(LAYER_IDS.sightings!, view.l.sightings ?? true);
     const [military, airports] = await Promise.all([
       loadGeoJSON(BASE, "data/overlays/military.json"),
       loadGeoJSON(BASE, "data/overlays/airports.json"),
     ]);
     map.addMilitary(military);
     map.addAirports(airports);
+    map.setLayerVisible(LAYER_IDS.military!, view.l.military ?? false);
+    map.setLayerVisible(LAYER_IDS.airports!, view.l.airports ?? false);
   });
 }
 
@@ -117,7 +191,7 @@ function updatePanel(
   range: [number, number],
   radius: number,
   map: SkyMap,
-) {
+): number | null {
   $("[data-count]").textContent = inView.toLocaleString();
   $("#window-label").textContent = fmtWindow(range[0], range[1]);
   $("#alert-count").textContent = alertCount.toLocaleString();
@@ -163,6 +237,8 @@ function updatePanel(
       if (b) map.flyTo(b.lon, b.lat, 9);
     });
   });
+
+  return ranked[0]?.base.id ?? null;
 }
 
 const LAYER_IDS: Record<string, string[]> = {
@@ -171,13 +247,14 @@ const LAYER_IDS: Record<string, string[]> = {
   airports: ["airports-point"],
 };
 
-function wireLayerToggles(map: SkyMap) {
+function wireLayerToggles(map: SkyMap, layers: Record<string, boolean>, sync: () => void) {
   document.querySelectorAll<HTMLInputElement>("input[data-layer]").forEach((cb) => {
     cb.addEventListener("change", () => {
       const key = cb.dataset.layer!;
-      if (key === "alerts") { map.setAlertVisible(cb.checked); return; }
-      const ids = LAYER_IDS[key];
-      if (ids) map.setLayerVisible(ids, cb.checked);
+      layers[key] = cb.checked;
+      if (key === "alerts") map.setAlertVisible(cb.checked);
+      else { const ids = LAYER_IDS[key]; if (ids) map.setLayerVisible(ids, cb.checked); }
+      sync();
     });
   });
 }
